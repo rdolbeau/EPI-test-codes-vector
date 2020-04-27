@@ -6,7 +6,7 @@ Some test codes for vector capabilities targeted in EPI (SVE, RISC-V V)
 
 ## Cryptographic
 
-Cryptographic codes here are 'standalone' versions of implementations designed for the Supercop benchmark <https://bench.cr.yp.to/supercop.html>, and include some of the Supercop source code. They also include some objects file generated from Supercop (such as cycle counters, ...) to simplify usage.
+Cryptographic codes here are 'standalone' versions of implementations designed for the Supercop benchmark <https://bench.cr.yp.to/supercop.html>, and include some of the Supercop source code. They also include some objects file generated from Supercop (cpucycles.o, kernelrandombytes.o) to simplify usage.
 
 All codes currently use ACLE (Arm C Language Extension) for SVE, and EPI Builtins for V (<https://repo.hca.bsc.es/gitlab/rferrer/epi-builtins-ref/>).
 
