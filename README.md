@@ -1,5 +1,24 @@
 # EPI-test-codes-vector
-Some test codes for vector capabilties targeted in EPI (SVE, RISC-V V)
+
+Some test codes for vector capabilities targeted in EPI (SVE, RISC-V V)
+
+# Content
+
+## Cryptographic
+
+Cryptographic codes here are 'standalone' versions of implementations designed for the Supercop benchmark <https://bench.cr.yp.to/supercop.html>, and include some of the Supercop source code. They also include some objects file generated from Supercop (such as cycle counters, ...) to simplify usage.
+
+All codes currently use ACLE (Arm C Language Extension) for SVE, and EPI Builtins for V (<https://repo.hca.bsc.es/gitlab/rferrer/epi-builtins-ref/>).
+
+* aes256ctrstandalone-rvv: AES-256 in counter mode, for RISC-V with V extension. This doesn't use any AES-specific instructions, but vectorize a scalar AES-256 (specifically, the implementation from `supercop/crypto_core/aes256encrypt/dolbeau/std-4ft`).
+
+* aes256ctrstandalone-sve: same as above, but for Arm SVE.
+
+* aes256encryptstandalone-rvv: AES-256 encryption vectorized per-block for RISC-V with V extension, same idea as aes256ctrstandalone-rvv above minus the counter mode.
+
+* chacha20standalone-rvv: Chacha20 vectorized for RISC-V with V extension, basically the RISC-V version of the SVE version below.
+
+* chacha20standalone-sve: Chacha20 vectorized for Arm SVE. This is a standalone version of `supercop/crypto_stream/chacha20/dolbeau/arm-sve`.
 
 # Acknowledgements
 
