@@ -22,7 +22,9 @@ All codes currently use ACLE (Arm C Language Extension) for SVE, and EPI Builtin
 
 ## Other
 
-FFTW3 can be found in https://github.com/rdolbeau/fftw3, see the wiki there for the relevant branches.
+* simplefft16-rvv: 16-points in-register double-precision DFT/FFT (so requires a 1024+ bits vector that can fit 16 double-precision values). Multiple implementations of the algorithm, both as DFT and FFT.
+
+* FFTW3 can be found in https://github.com/rdolbeau/fftw3, see the wiki there for the relevant branches.
 
 # Acknowledgements
 
