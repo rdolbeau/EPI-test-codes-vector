@@ -20,6 +20,10 @@ All codes currently use ACLE (Arm C Language Extension) for SVE, and EPI Builtin
 
 * chacha20standalone-sve: Chacha20 vectorized for Arm SVE. This is a standalone version of `supercop/crypto_stream/chacha20/dolbeau/arm-sve`.
 
+## Other
+
+FFTW3 can be found in https://github.com/rdolbeau/fftw3, see the wiki there for the relevant branches.
+
 # Acknowledgements
 
 This work has partly been done as part of the European Processor Initiative project.
