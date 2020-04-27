@@ -99,6 +99,8 @@ if (bytes>=256) {
     x_14 = orig14;
     x_15 = orig15;
 
+    in12 = x[12];
+    in13 = x[13];
     u64 in1213 = ((u64)in12) | (((u64)in13) << 32);
 //#define CHACHA20_OLDCOUNTER
 #ifdef CHACHA20_OLDCOUNTER
@@ -108,8 +110,6 @@ if (bytes>=256) {
     const __epi_1xi64 vvcover2 = __builtin_epi_vmv_v_x_1xi64(vc/2, vc/2);
     const __epi_1xi64 addv12 = __builtin_epi_vadd_1xi64(addv13, vvcover2, vc/2);
     __epi_1xi64 t12, t13;
-    in12 = x[12];
-    in13 = x[13];
     t12 = __builtin_epi_vmv_v_x_1xi64(in1213, vc/2);
     t13 = __builtin_epi_vmv_v_x_1xi64(in1213, vc/2);
 
@@ -121,13 +121,15 @@ if (bytes>=256) {
     x_13 = __builtin_epi_uzp2_2xi32(x_13, t, vc);
 #else
     const __epi_2xi32 addv = __builtin_epi_vid_2xi32(vc);
+    __epi_2xi32 oldx_12;
     __epi_2xi1 carry;
     carry = __builtin_epi_vmxor_2xi1(carry, carry, vc); //
-    x_12 = __builtin_epi_vmv_v_x_2xi32(x[12], vc);
-    x_13 = __builtin_epi_vmv_v_x_2xi32(x[13], vc);
+    x_12 = __builtin_epi_vmv_v_x_2xi32(in12, vc);
+    x_13 = __builtin_epi_vmv_v_x_2xi32(in13, vc);
+    oldx_12 = x_12;
     x_12 = __builtin_epi_vadc_2xi32(x_12, addv, carry, vc);
-    carry = __builtin_epi_vmadc_carry_in_2xi32(x_12, addv, carry, vc);
-    x_13 = __builtin_epi_vadc_2xi32(x_12, __builtin_epi_vmv_v_x_2xi32(0, vc), carry, vc);
+    carry = __builtin_epi_vmadc_carry_in_2xi32(oldx_12, addv, carry, vc);
+    x_13 = __builtin_epi_vadc_2xi32(x_13, __builtin_epi_vmv_v_x_2xi32(0, vc), carry, vc);
 #endif
 
     orig12 = x_12;
