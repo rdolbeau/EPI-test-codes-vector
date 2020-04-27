@@ -20,6 +20,8 @@ All codes currently use ACLE (Arm C Language Extension) for SVE, and EPI Builtin
 
 * chacha20standalone-sve: Chacha20 vectorized for Arm SVE. This is a standalone version of `supercop/crypto_stream/chacha20/dolbeau/arm-sve`.
 
+The first part of the output (an hexadecimal string) should match the ckechsum from the benchmark, to for instance the output of chacha20_small should match the content of `supercop/crypto_stream/chacha20/checksumsmall`.
+
 ## Other
 
 * simplefft16-rvv: 16-points in-register double-precision DFT/FFT (so requires a 1024+ bits vector that can fit 16 double-precision values). Multiple implementations of the algorithm, both as DFT and FFT.
