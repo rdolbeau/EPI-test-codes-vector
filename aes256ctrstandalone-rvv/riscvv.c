@@ -19,6 +19,8 @@
 #define _bswap64(a) __builtin_bswap64(a)
 #define _bswap(a) __builtin_bswap(a)
 
+//#define REGISTER_SBOX
+
 #if 0
 static inline void printiv32(const __epi_2xi32 v, const unsigned long int vl) {
         unsigned int data[vl];
@@ -112,6 +114,11 @@ static inline __epi_2xi32 __builtin_epi_vrotlv4_2xi32(const __epi_2xi32 a, const
         return __builtin_epi_vrgather_2xi32(a, vlpat, vc);
 }
 
+#if defined(REGISTER_SBOX)
+#define do_gather(t,a,x) __builtin_epi_vrgather_2xi32(v##t, a, x)
+#else
+#define do_gather(t,a,x) __builtin_epi_vload_indexed_2xi32(t, a, x)
+#endif
 
 static inline void aes256_4ft_encrypt1(unsigned int *output, const unsigned int *input, const unsigned int *aes_edrk)
 {
@@ -137,53 +144,55 @@ static inline void aes256_4ft_encrypt1(unsigned int *output, const unsigned int 
   v0x10 = __builtin_epi_vmv_v_x_2xi32(0x10, 4);
   v0x18 = __builtin_epi_vmv_v_x_2xi32(0x18, 4);
 
+#if defined(REGISTER_SBOX)
   vFT0 = __builtin_epi_vload_2xi32((const int*)FT0, 256);
   vFT1 = __builtin_epi_vload_2xi32((const int*)FT1, 256);
   vFT2 = __builtin_epi_vload_2xi32((const int*)FT2, 256);
   vFT3 = __builtin_epi_vload_2xi32((const int*)FT3, 256);
+#endif
 
   for (i = 4 ; i < (l_aes_nr<<2) ; i+= 4) {
 
     X8 = __builtin_epi_vand_2xi32(X, v0xFF, 4);
-    Y = __builtin_epi_vrgather_2xi32(vFT0, X8, 4);
+    Y = do_gather(FT0, X8, 4);
 #if defined(onetable)
     X = __builtin_epi_vrotlv4_2xi32(X, 4); /* emulated */
     X = __builtin_epi_vsrl_2xi32(X, v0x8, 4);
     X8 = __builtin_epi_vand_2xi32(X, v0xFF, 4);
-    Y8 = __builtin_epi_vrgather_2xi32(vFT0, X8, 4);
+    Y8 = do_gather(FT0, X8, 4);
     Y8 = __builtin_epi_vrotr_2xi32(Y8, v0x18, 4); /* emulated */
     Y = __builtin_epi_vxor_2xi32(Y8, Y, 4);
 
     X = __builtin_epi_vrotlv4_2xi32(X, 4); /* emulated */
     X = __builtin_epi_vsrl_2xi32(X, v0x8, 4);
     X8 = __builtin_epi_vand_2xi32(X, v0xFF, 4);
-    Y8 = __builtin_epi_vrgather_2xi32(vFT0, X8, 4);
+    Y8 = do_gather(FT0, X8, 4);
     Y8 = __builtin_epi_vrotr_2xi32(Y8, v0x10, 4);
     Y = __builtin_epi_vxor_2xi32(Y8, Y, 4);
 
     X = __builtin_epi_vrotlv4_2xi32(X, 4); /* emulated */
     X = __builtin_epi_vsrl_2xi32(X, v0x8, 4);
     X8 = __builtin_epi_vand_2xi32(X, v0xFF, 4);
-    Y8 = __builtin_epi_vrgather_2xi32(vFT0, X8, 4);
+    Y8 = do_gather(FT0, X8, 4);
     Y8 = __builtin_epi_vrotr_2xi32(Y8, v0x8, 4); /* emulated */
     Y = __builtin_epi_vxor_2xi32(Y8, Y, 4);
 #else
     X = __builtin_epi_vrotlv4_2xi32(X, 4); /* emulated */
     X = __builtin_epi_vsrl_2xi32(X, v0x8, 4);
     X8 = __builtin_epi_vand_2xi32(X, v0xFF, 4);
-    Y8 = __builtin_epi_vrgather_2xi32(vFT1, X8, 4);
+    Y8 = do_gather(FT1, X8, 4);
     Y = __builtin_epi_vxor_2xi32(Y8, Y, 4);
 
     X = __builtin_epi_vrotlv4_2xi32(X, 4); /* emulated */
     X = __builtin_epi_vsrl_2xi32(X, v0x8, 4);
     X8 = __builtin_epi_vand_2xi32(X, v0xFF, 4);
-    Y8 = __builtin_epi_vrgather_2xi32(vFT2, X8, 4);
+    Y8 = do_gather(FT2, X8, 4);
     Y = __builtin_epi_vxor_2xi32(Y8, Y, 4);
 
     X = __builtin_epi_vrotlv4_2xi32(X, 4); /* emulated */
     X = __builtin_epi_vsrl_2xi32(X, v0x8, 4);
     X8 = __builtin_epi_vand_2xi32(X, v0xFF, 4);
-    Y8 = __builtin_epi_vrgather_2xi32(vFT3, X8, 4);
+    Y8 = do_gather(FT3, X8, 4);
     Y = __builtin_epi_vxor_2xi32(Y8, Y, 4);
 #endif
 
@@ -290,32 +299,34 @@ static inline void aes256_4ft_encryptX(unsigned int *output, unsigned long long 
   v0x10 = __builtin_epi_vmv_v_x_2xi32(0x10, 4*block);
   v0x18 = __builtin_epi_vmv_v_x_2xi32(0x18, 4*block);
 
+#if defined(REGISTER_SBOX)
   vFT0 = __builtin_epi_vload_2xi32((const int*)FT0, 256);
   vFT1 = __builtin_epi_vload_2xi32((const int*)FT1, 256);
   vFT2 = __builtin_epi_vload_2xi32((const int*)FT2, 256);
   vFT3 = __builtin_epi_vload_2xi32((const int*)FT3, 256);
+#endif
 
   for (i = 4 ; i < (l_aes_nr<<2) ; i+= 4) {
 
     X8 = __builtin_epi_vand_2xi32(X, v0xFF, 4*block);
-    Y = __builtin_epi_vrgather_2xi32(vFT0, X8, 4*block);
+    Y = do_gather(FT0, X8, 4*block);
 
     X = __builtin_epi_vrotlv4_2xi32(X, 4*block); /* emulated */
     X = __builtin_epi_vsrl_2xi32(X, v0x8, 4*block);
     X8 = __builtin_epi_vand_2xi32(X, v0xFF, 4*block);
-    Y8 = __builtin_epi_vrgather_2xi32(vFT1, X8, 4*block);
+    Y8 = do_gather(FT1, X8, 4*block);
     Y = __builtin_epi_vxor_2xi32(Y8, Y, 4*block);
 
     X = __builtin_epi_vrotlv4_2xi32(X, 4*block); /* emulated */
     X = __builtin_epi_vsrl_2xi32(X, v0x8, 4*block);
     X8 = __builtin_epi_vand_2xi32(X, v0xFF, 4*block);
-    Y8 = __builtin_epi_vrgather_2xi32(vFT2, X8, 4*block);
+    Y8 = do_gather(FT2, X8, 4*block);
     Y = __builtin_epi_vxor_2xi32(Y8, Y, 4*block);
 
     X = __builtin_epi_vrotlv4_2xi32(X, 4*block); /* emulated */
     X = __builtin_epi_vsrl_2xi32(X, v0x8, 4*block);
     X8 = __builtin_epi_vand_2xi32(X, v0xFF, 4*block);
-    Y8 = __builtin_epi_vrgather_2xi32(vFT3, X8, 4*block);
+    Y8 = do_gather(FT3, X8, 4*block);
     Y = __builtin_epi_vxor_2xi32(Y8, Y, 4*block);
 
     vaes_edrk = __builtin_epi_vload_2xi32((const int*)(aes_edrk + i), 4);
@@ -377,7 +388,9 @@ const unsigned char *k
   aes256_setkey_encrypt((const unsigned int*)k,rkeys);
   vc &= ~0x03ul;
 
+#if defined(REGISTER_SBOX)
   if (vc < 256) { fprintf(stderr, "vector too short for register-based s-boxes\n"); exit(-1); };
+#endif
 
   /* n2 is in byte-reversed (i.e., native little endian)
      order to make increment/testing easier */
@@ -417,7 +430,9 @@ const unsigned char *k
   aes256_setkey_encrypt((const unsigned int*)k,rkeys);
   vc &= ~0x03ull;
 
+#if defined(REGISTER_SBOX)
   if (vc < 256) { fprintf(stderr, "vector too short for register-based s-boxes\n"); exit(-1); };
+#endif
 
   /* n2 is in byte-reversed (i.e., native little endian)
      order to make increment/testing easier */
