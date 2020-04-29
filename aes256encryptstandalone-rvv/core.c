@@ -5,6 +5,9 @@
   Public Domain
 */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "crypto_core.h"
 #include "stdaes-common.h"
 
