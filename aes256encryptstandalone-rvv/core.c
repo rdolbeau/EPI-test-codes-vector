@@ -182,7 +182,11 @@ int crypto_core(
   const unsigned char *k,
   const unsigned char *c
 ) {
+  unsigned long int vc = __builtin_epi_vsetvl(512, __epi_e32, __epi_m1); // vc should be 256 or more, otherwise vrgather won't work for FT
   unsigned int rkeys[60];
+
+  if (vc < 256) { fprintf(stderr, "vector too short for register-based s-boxes\n"); exit(-1); };
+
   aes256_setkey_encrypt((const unsigned int*)k,rkeys);
   aes256_4ft_encrypt(rkeys, (const unsigned int*)in, (unsigned int*)out);
   return 0;

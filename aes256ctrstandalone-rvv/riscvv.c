@@ -470,6 +470,8 @@ const unsigned char *k
   aes256_setkey_encrypt((const unsigned int*)k,rkeys);
   vc &= ~0x03ul;
 
+  if (vc < 256) { fprintf(stderr, "vector too short for register-based s-boxes\n"); exit(-1); };
+
   /* n2 is in byte-reversed (i.e., native little endian)
      order to make increment/testing easier */
   n2[1] = _bswap64((*(unsigned long long*)&n[8]));
@@ -507,6 +509,8 @@ const unsigned char *k
   unsigned int rkeys[60];
   aes256_setkey_encrypt((const unsigned int*)k,rkeys);
   vc &= ~0x03ull;
+
+  if (vc < 256) { fprintf(stderr, "vector too short for register-based s-boxes\n"); exit(-1); };
 
   /* n2 is in byte-reversed (i.e., native little endian)
      order to make increment/testing easier */
