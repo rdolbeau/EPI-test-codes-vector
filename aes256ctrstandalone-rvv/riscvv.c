@@ -117,7 +117,7 @@ static inline __epi_2xi32 __builtin_epi_vrotlv4_2xi32(const __epi_2xi32 a, const
 #if defined(REGISTER_SBOX)
 #define do_gather(t,a,x) __builtin_epi_vrgather_2xi32(v##t, a, x)
 #else
-#define do_gather(t,a,x) __builtin_epi_vload_indexed_2xi32(t, a, x)
+#define do_gather(t,a,x) __builtin_epi_vload_indexed_2xi32(t, __builtin_epi_vsll_2xi32(a, __builtin_epi_vmv_v_x_2xi32(2, x), x), x)
 #endif
 
 static inline void aes256_4ft_encrypt1(unsigned int *output, const unsigned int *input, const unsigned int *aes_edrk)
