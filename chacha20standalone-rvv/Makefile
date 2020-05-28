@@ -3,7 +3,7 @@ OBJs=$(SRCs:.c=.o)
 SCLIBS=cpucycles.o kernelrandombytes.o
 
 CC=clang
-OPT=-I. -O2 -fno-vectorize
+OPT=-I. -O2 -fno-vectorize #-DUSE_EPI_CUSTOM
 
 all: chacha20 chacha20_small
 
