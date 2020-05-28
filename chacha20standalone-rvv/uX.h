@@ -72,14 +72,16 @@ if (bytes>=256) {
 
   while (bytes >= 256) {
 {
-  vc = bytes / 64;
-  vc = vc | (vc >> 1);
-  vc = vc | (vc >> 2);
-  vc = vc | (vc >> 4);
-  vc = vc | (vc >> 8);
-  vc = vc | (vc >> 16);
-  vc = vc | (vc >> 32);
-  vc = vc - (vc >> 1); // rounded to power-of-2
+/*   vc = bytes / 64; */
+/*   vc = vc | (vc >> 1); */
+/*   vc = vc | (vc >> 2); */
+/*   vc = vc | (vc >> 4); */
+/*   vc = vc | (vc >> 8); */
+/*   vc = vc | (vc >> 16); */
+/*   vc = vc | (vc >> 32); */
+/*   vc = vc - (vc >> 1); // rounded to power-of-2 */
+vc = bytes / 64;
+vc = vc & ~3;
 }
   vc = 2 * __builtin_epi_vsetvl(vc/2, __epi_e64, __epi_m1);
     x_0 = orig0;
@@ -105,7 +107,8 @@ if (bytes>=256) {
 //#define CHACHA20_OLDCOUNTER
 #ifdef CHACHA20_OLDCOUNTER
     /* vid makes it easy to build the input counter */
-    /* this likely should be rewritten in an easier(& faster) way using vector add-with-carry */
+    /* this likely should be rewritten in an easier(& faster) way using vector add-with-carry - see below */
+    /* also this seem to break if vc is not a power-of-2 ... */
     const __epi_1xi64 addv13 = __builtin_epi_vid_1xi64(vc/2);
     const __epi_1xi64 vvcover2 = __builtin_epi_vmv_v_x_1xi64(vc/2, vc/2);
     const __epi_1xi64 addv12 = __builtin_epi_vadd_1xi64(addv13, vvcover2, vc/2);
