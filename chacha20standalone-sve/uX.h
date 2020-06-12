@@ -396,7 +396,7 @@ if (bytes>=16*vc) {
 		     "st1d { %[x_"#c"].d }, p0, [x27, %[gvv].d]\n"	\
 		     "st1d { %[x_"#d"].d }, p0, [x26, %[gvv].d]\n"	\
 		     : [x_##a] "+w" (x_##a), [x_##b] "+w" (x_##b), [x_##c] "+w" (x_##c), [x_##d] "+w" (x_##d), \
-		       [temp0] "=w" (temp0), [temp1] "=w"(temp1), [temp2] "=w" (temp2), [temp3] "=w"(temp3) \
+		       [temp0] "=&w" (temp0), [temp1] "=&w"(temp1), [temp2] "=&w" (temp2), [temp3] "=&w"(temp3) \
 		     : [orig##a] "w" (orig##a), [orig##b] "w" (orig##b), [orig##c] "w" (orig##c), [orig##d] "w" (orig##d), \
 		       [m0] "r" ((m)), [out0] "r" ((out)),		\
 		       [gvv] "w" (gvv)					\
