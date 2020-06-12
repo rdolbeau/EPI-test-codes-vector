@@ -323,39 +323,41 @@ if (bytes>=16*vc) {
 
 #define ONEQUAD_TRANSPOSE_ASM(a,b,c,d) { 				\
 	svuint32_t temp0, temp1, temp2, temp3;				\
+	svuint32_t buf0, buf1, buf2, buf3;				\
 	asm volatile("ptrue p0.d\n"					\
+		     "add x25, %[m0], #64\n"				\
+		     "add x30, %[m0], #128\n"				\
+		     "add x29, %[m0], #192\n"				\
+		     "ld1d { %[buf0].d }, p0/z, [%[m0], %[gvv].d]\n"	\
+		     "ld1d { %[buf1].d }, p0/z, [x25, %[gvv].d]\n"	\
+		     "ld1d { %[buf2].d }, p0/z, [x30, %[gvv].d]\n"	\
+		     "ld1d { %[buf3].d }, p0/z, [x29, %[gvv].d]\n"	\
 		     "add %[x_"#a"].s, %[x_"#a"].s, %[orig"#a"].s\n"	\
 		     "add %[x_"#b"].s, %[x_"#b"].s, %[orig"#b"].s\n"	\
-		     "add x25, %[m0], #64\n"				\
 		     "add %[x_"#c"].s, %[x_"#c"].s, %[orig"#c"].s\n"	\
 		     "add %[x_"#d"].s, %[x_"#d"].s, %[orig"#d"].s\n"	\
-		     "add x30, %[m0], #128\n"				\
 		     "trn1 %[temp0].s, %[x_"#a"].s, %[x_"#b"].s\n"	\
 		     "trn2 %[temp1].s, %[x_"#a"].s, %[x_"#b"].s\n"	\
-		     "add x29, %[m0], #192\n"				\
 		     "trn1 %[temp2].s, %[x_"#c"].s, %[x_"#d"].s\n"	\
 		     "trn2 %[temp3].s, %[x_"#c"].s, %[x_"#d"].s\n"	\
 		     "add x28, %[out0], #64\n"				\
+		     "add x27, %[out0], #128\n"				\
 		     "trn1 %[x_"#a"].d, %[temp0].d, %[temp2].d\n"	\
 		     "trn1 %[x_"#b"].d, %[temp1].d, %[temp3].d\n"	\
-		     "add x27, %[out0], #128\n"				\
+		     "add x26, %[out0], #192\n"				\
 		     "trn2 %[x_"#c"].d, %[temp0].d, %[temp2].d\n"	\
 		     "trn2 %[x_"#d"].d, %[temp1].d, %[temp3].d\n"	\
-		     "add x26, %[out0], #192\n"				\
-		     "ld1d { %[temp0].d }, p0/z, [%[m0], %[gvv].d]\n"	\
-		     "ld1d { %[temp1].d }, p0/z, [x25, %[gvv].d]\n"	\
-		     "ld1d { %[temp2].d }, p0/z, [x30, %[gvv].d]\n"	\
-		     "ld1d { %[temp3].d }, p0/z, [x29, %[gvv].d]\n"	\
-		     "eor %[x_"#a"].d, %[x_"#a"].d, %[temp0].d\n"	\
-		     "eor %[x_"#b"].d, %[x_"#b"].d, %[temp1].d\n"	\
-		     "eor %[x_"#c"].d, %[x_"#c"].d, %[temp2].d\n"	\
-		     "eor %[x_"#d"].d, %[x_"#d"].d, %[temp3].d\n"	\
+		     "eor %[x_"#a"].d, %[x_"#a"].d, %[buf0].d\n"	\
+		     "eor %[x_"#b"].d, %[x_"#b"].d, %[buf1].d\n"	\
+		     "eor %[x_"#c"].d, %[x_"#c"].d, %[buf2].d\n"	\
+		     "eor %[x_"#d"].d, %[x_"#d"].d, %[buf3].d\n"	\
 		     "st1d { %[x_"#a"].d }, p0, [%[out0], %[gvv].d]\n"	\
 		     "st1d { %[x_"#b"].d }, p0, [x28, %[gvv].d]\n"	\
 		     "st1d { %[x_"#c"].d }, p0, [x27, %[gvv].d]\n"	\
 		     "st1d { %[x_"#d"].d }, p0, [x26, %[gvv].d]\n"	\
 		     : [x_##a] "+w" (x_##a), [x_##b] "+w" (x_##b), [x_##c] "+w" (x_##c), [x_##d] "+w" (x_##d), \
-		       [temp0] "=&w" (temp0), [temp1] "=&w"(temp1), [temp2] "=&w" (temp2), [temp3] "=&w"(temp3) \
+		       [temp0] "=&w" (temp0), [temp1] "=&w"(temp1), [temp2] "=&w" (temp2), [temp3] "=&w"(temp3), \
+		       [buf0] "=&w" (buf0), [buf1] "=&w"(buf1), [buf2] "=&w" (buf2), [buf3] "=&w"(buf3) \
 		     : [orig##a] "w" (orig##a), [orig##b] "w" (orig##b), [orig##c] "w" (orig##c), [orig##d] "w" (orig##d), \
 		       [m0] "r" ((m)), [out0] "r" ((out)),		\
 		       [gvv] "w" (gvv)					\
@@ -363,7 +365,7 @@ if (bytes>=16*vc) {
 		     );							\
     }
     
-#define ONEQUAD(a,b,c,d) ONEQUAD_TRANSPOSE_ASM(a,b,c,d)
+#define ONEQUAD(a,b,c,d) ONEQUAD_TRANSPOSE(a,b,c,d)
 
     svint64_t gvv, gvvl, gvvh;
     /* But beware, the range of immediates is small in svindex
@@ -374,6 +376,7 @@ if (bytes>=16*vc) {
     gvvl = svzip1(gvvl, gvvl);
     gvv = svadd_s64_z(svptrue_b64(), gvvl, svdupq_n_s64(0,8));
 
+#if 1
     ONEQUAD(0,1,2,3);
     m+=16;
     out+=16;
@@ -386,6 +389,72 @@ if (bytes>=16*vc) {
     ONEQUAD(12,13,14,15);
     m-=48;
     out-=48;
+#else
+#define GATHER4(offset, a, b, c, d)					\
+    asm volatile("add x25, %[m0], #64\n"				\
+		 "add x30, %[m0], #128\n"				\
+		 "add x29, %[m0], #192\n"				\
+		 "ld1d { %[buf0].d }, %[p0]/z, [%[m0], %[gvv].d]\n"	\
+		 "ld1d { %[buf1].d }, %[p0]/z, [x25, %[gvv].d]\n"		\
+		 "ld1d { %[buf2].d }, %[p0]/z, [x30, %[gvv].d]\n"		\
+		 "ld1d { %[buf3].d }, %[p0]/z, [x29, %[gvv].d]\n"		\
+		 : [buf0] "=&w" (buf##a), [buf1] "=&w"(buf##b), [buf2] "=&w" (buf##c), [buf3] "=&w"(buf##d) \
+		 : [m0] "r" ((m+offset)), [gvv] "w" (gvv), [p0] "Upl" (p0) : "x25", "x30", "x29")
+
+#define ADD4(a, b, c, d)						\
+    asm volatile("add %[x_"#a"].s, %[x_"#a"].s, %[orig"#a"].s\n"	\
+		 "add %[x_"#b"].s, %[x_"#b"].s, %[orig"#b"].s\n"	\
+		 "add %[x_"#c"].s, %[x_"#c"].s, %[orig"#c"].s\n"	\
+		 "add %[x_"#d"].s, %[x_"#d"].s, %[orig"#d"].s\n"	\
+		 : [x_##a] "+w" (x_##a), [x_##b] "+w" (x_##b), [x_##c] "+w" (x_##c), [x_##d] "+w" (x_##d) \
+		 : [orig##a] "w" (orig##a), [orig##b] "w" (orig##b), [orig##c] "w" (orig##c), [orig##d] "w" (orig##d))
+
+#define TRANSSTORE4(offset, a, b, c, d)					\
+    asm volatile("trn1 %[temp0].s, %[x_"#a"].s, %[x_"#b"].s\n"		\
+		 "trn2 %[temp1].s, %[x_"#a"].s, %[x_"#b"].s\n"		\
+		 "add x28, %[out0], #64\n"				\
+		 "trn1 %[temp2].s, %[x_"#c"].s, %[x_"#d"].s\n"		\
+		 "trn2 %[temp3].s, %[x_"#c"].s, %[x_"#d"].s\n"		\
+		 "add x26, %[out0], #192\n"				\
+		 "add x27, %[out0], #128\n"				\
+		 "trn1 %[x_"#a"].d, %[temp0].d, %[temp2].d\n"		\
+		 "trn1 %[x_"#b"].d, %[temp1].d, %[temp3].d\n"		\
+		 "trn2 %[x_"#c"].d, %[temp0].d, %[temp2].d\n"		\
+		 "trn2 %[x_"#d"].d, %[temp1].d, %[temp3].d\n"		\
+		 "eor %[x_"#a"].d, %[x_"#a"].d, %[buf0].d\n"		\
+		 "eor %[x_"#b"].d, %[x_"#b"].d, %[buf1].d\n"		\
+		 "eor %[x_"#c"].d, %[x_"#c"].d, %[buf2].d\n"		\
+		 "eor %[x_"#d"].d, %[x_"#d"].d, %[buf3].d\n"		\
+		 "st1d { %[x_"#a"].d }, %[p0], [%[out0], %[gvv].d]\n"	\
+		 "st1d { %[x_"#b"].d }, %[p0], [x28, %[gvv].d]\n"		\
+		 "st1d { %[x_"#c"].d }, %[p0], [x27, %[gvv].d]\n"		\
+		 "st1d { %[x_"#d"].d }, %[p0], [x26, %[gvv].d]\n"		\
+		 : [x_##a] "+w" (x_##a), [x_##b] "+w" (x_##b), [x_##c] "+w" (x_##c), [x_##d] "+w" (x_##d), \
+		   [temp0] "=&w" (temp0), [temp1] "=&w"(temp1), [temp2] "=&w" (temp2), [temp3] "=&w"(temp3) \
+		 :  [buf0] "w" (buf##a), [buf1] "w" (buf##b), [buf2] "w" (buf##c), [buf3] "w"(buf##d), \
+		    [out0] "r" (out+offset), [gvv] "w" (gvv), [p0] "Upl" (p0) \
+		 : "memory", "x28", "x27", "x26"			\
+		 )
+
+    {
+	    svuint32_t temp0, temp1, temp2, temp3;
+	    svuint32_t buf0, buf1, buf2, buf3, buf4, buf5, buf6, buf7, buf8, buf9, buf10, buf11, buf12, buf13, buf14, buf15;
+	    svbool_t p0;
+	    asm volatile("ptrue %0.d\n" : "=Upl" (p0));
+	    ADD4(0, 1, 2, 3);
+	    GATHER4(0, 0, 1, 2, 3);
+	    ADD4(4, 5, 6, 7);
+	    GATHER4(16, 4, 5, 6, 7);
+	    TRANSSTORE4(0, 0, 1, 2, 3);
+	    ADD4(8, 9, 10, 11);
+	    GATHER4(32, 8, 9, 10, 11);
+	    TRANSSTORE4(16, 4, 5, 6, 7);
+	    ADD4(12, 13, 14, 15);
+	    GATHER4(48, 12, 13, 14, 15);
+	    TRANSSTORE4(32, 8, 9, 10, 11);
+	    TRANSSTORE4(48, 12, 13, 14, 15);
+    }
+#endif
     
 #undef ONEQUAD
 #undef ONEQUAD_TRANSPOSE
