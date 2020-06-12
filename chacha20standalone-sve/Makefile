@@ -19,7 +19,7 @@ try.o: try.c
 try_small.o: try.c
 	$(CC) $(OPT) $< -c -o $@ -DSMALL
 
-chacha.o: chacha.c
+chacha.o: chacha.c uX.h
 	$(CC) $(OPT) $< -c -o $@
 
 chacha20: $(OBJs) chacha.o try.o
