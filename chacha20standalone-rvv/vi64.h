@@ -18,6 +18,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#ifndef USE_EPI_CUSTOM
 //ZIP1 Interleave elements from low halves of two vectors
 static inline __epi_1xi64 __builtin_epi_zip1_1xi64(__epi_1xi64 v0, __epi_1xi64 v1, unsigned long int vc) {
 	__epi_1xi64 res;
@@ -106,4 +107,40 @@ static inline __epi_1xi64 __builtin_epi_uzp2_1xi64(__epi_1xi64 v0, __epi_1xi64 v
 	res = __builtin_epi_vmerge_1xi64(v0r, v1r, mmask, vc); // should give us what we want ...
 	return res;
 }
+#else // USE_EPI_CUSTOM
+//ZIP1 Interleave elements from low halves of two vectors
+static inline __epi_1xi64 __builtin_epi_zip1_1xi64(__epi_1xi64 v0, __epi_1xi64 v1, unsigned long int vc) {
+	__epi_1xi64x2 res = __builtin_epi_vzip2_1xi64x2(v0, v1, vc);
+	return res.v0;
+}
 
+//ZIP2 Interleave elements from high halves of two vectors
+static inline __epi_1xi64 __builtin_epi_zip2_1xi64(__epi_1xi64 v0, __epi_1xi64 v1, unsigned long int vc) {
+	__epi_1xi64x2 res = __builtin_epi_vzip2_1xi64x2(v0, v1, vc);
+	return res.v1;
+}
+
+//TRN1 Interleave even elements from two vectors
+static inline __epi_1xi64 __builtin_epi_trn1_1xi64(__epi_1xi64 v0, __epi_1xi64 v1, unsigned long int vc) {
+	__epi_1xi64x2 res = __builtin_epi_vtrn_1xi64x2(v0, v1, vc);
+	return res.v0;
+}
+
+//TRN2 Interleave odd elements from two vectors
+static inline __epi_1xi64 __builtin_epi_trn2_1xi64(__epi_1xi64 v0, __epi_1xi64 v1, unsigned long int vc) {
+	__epi_1xi64x2 res = __builtin_epi_vtrn_1xi64x2(v0, v1, vc);
+	return res.v1;
+}
+
+//UZP1 Concatenate even elements from two vectors
+static inline __epi_1xi64 __builtin_epi_uzp1_1xi64(__epi_1xi64 v0, __epi_1xi64 v1, unsigned long int vc) {
+	__epi_1xi64x2 res = __builtin_epi_vunzip2_1xi64x2(v0, v1, vc);
+	return res.v0;
+}
+
+//UZP2 Concatenate odd elements from two vectors
+static inline __epi_1xi64 __builtin_epi_uzp2_1xi64(__epi_1xi64 v0, __epi_1xi64 v1, unsigned long int vc) {
+	__epi_1xi64x2 res = __builtin_epi_vunzip2_1xi64x2(v0, v1, vc);
+	return res.v1;
+}
+#endif
