@@ -283,7 +283,7 @@ if (bytes>=16*vc) {
       VEC4_QUARTERROUND( 2, 7, 8,13);
       VEC4_QUARTERROUND( 3, 4, 9,14);
 #else
-#if 1
+#if 0
       VEC4_DOUBLEQUARTERROUND_ASM( 0, 4, 8,12, 1, 5, 9,13);
       VEC4_DOUBLEQUARTERROUND_ASM( 2, 6,10,14, 3, 7,11,15);
       VEC4_DOUBLEQUARTERROUND_ASM( 0, 5,10,15, 1, 6,11,12);
@@ -319,47 +319,6 @@ if (bytes>=16*vc) {
       svst1_scatter_s64offset_u64(svptrue_b64(), (uint64_t*)(out+128), gvv, t2);\
       t3 = sveor_u64_z(svptrue_b64(), svreinterpret_u64_u32(x_##d), svld1_gather_s64offset_u64(svptrue_b64(), (uint64_t*)(m+192), gvv));             \
       svst1_scatter_s64offset_u64(svptrue_b64(), (uint64_t*)(out+192), gvv, t3);\
-    }
-
-#define ONEQUAD_TRANSPOSE_ASM2(a,b,c,d) { 				\
-	svuint32_t temp0, temp1, temp2, temp3;				\
-	const u8 *m0 = m, *out0 = out;					\
-	const u8 *m64 = m+64, *out64 = out+64;				\
-	const u8 *m128 = m+128, *out128 = out+128;			\
-	const u8 *m192 = m+192, *out192 = out+192;			\
-	asm volatile("ptrue p0.d\n"					\
-		     "add %[x_"#a"].s, %[x_"#a"].s, %[orig"#a"].s\n"	\
-		     "add %[x_"#b"].s, %[x_"#b"].s, %[orig"#b"].s\n"	\
-		     "add %[x_"#c"].s, %[x_"#c"].s, %[orig"#c"].s\n"	\
-		     "add %[x_"#d"].s, %[x_"#d"].s, %[orig"#d"].s\n"	\
-		     "trn1 %[temp0].s, %[x_"#a"].s, %[x_"#b"].s\n"	\
-		     "trn2 %[temp1].s, %[x_"#a"].s, %[x_"#b"].s\n"	\
-		     "trn1 %[temp2].s, %[x_"#c"].s, %[x_"#d"].s\n"	\
-		     "trn2 %[temp3].s, %[x_"#c"].s, %[x_"#d"].s\n"	\
-		     "trn1 %[x_"#a"].d, %[temp0].d, %[temp2].d\n"	\
-		     "trn1 %[x_"#b"].d, %[temp1].d, %[temp3].d\n"	\
-		     "trn2 %[x_"#c"].d, %[temp0].d, %[temp2].d\n"	\
-		     "trn2 %[x_"#d"].d, %[temp1].d, %[temp3].d\n"	\
-		     "ld1d { %[temp0].d }, p0/z, [%[m0], %[gvv].d]\n"	\
-		     "ld1d { %[temp1].d }, p0/z, [%[m64], %[gvv].d]\n"	\
-		     "ld1d { %[temp2].d }, p0/z, [%[m128], %[gvv].d]\n" \
-		     "ld1d { %[temp3].d }, p0/z, [%[m192], %[gvv].d]\n" \
-		     "eor %[x_"#a"].d, %[x_"#a"].d, %[temp0].d\n"	\
-		     "eor %[x_"#b"].d, %[x_"#b"].d, %[temp1].d\n"	\
-		     "eor %[x_"#c"].d, %[x_"#c"].d, %[temp2].d\n"	\
-		     "eor %[x_"#d"].d, %[x_"#d"].d, %[temp3].d\n"	\
-		     "st1d { %[x_"#a"].d }, p0, [%[out0], %[gvv].d]\n"	\
-		     "st1d { %[x_"#b"].d }, p0, [%[out64], %[gvv].d]\n" \
-		     "st1d { %[x_"#c"].d }, p0, [%[out128], %[gvv].d]\n" \
-		     "st1d { %[x_"#d"].d }, p0, [%[out192], %[gvv].d]\n" \
-		     : [x_##a] "+w" (x_##a), [x_##b] "+w" (x_##b), [x_##c] "+w" (x_##c), [x_##d] "+w" (x_##d), \
-		       [temp0] "=w" (temp0), [temp1] "=w"(temp1), [temp2] "=w" (temp2), [temp3] "=w"(temp3) \
-		     : [orig##a] "w" (orig##a), [orig##b] "w" (orig##b), [orig##c] "w" (orig##c), [orig##d] "w" (orig##d), \
-		       [m0] "r" ((m0)), [m64] "r" ((m64)), [m128] "r" ((m128)), [m192] "r" ((m192)), \
-		       [out0] "r" ((out0)), [out64] "r" ((out64)), [out128] "r" ((out128)), [out192] "r" ((out192)), \
-		       [gvv] "w" (gvv)					\
-		     : "p0", "memory"					\
-		     );							\
     }
 
 #define ONEQUAD_TRANSPOSE_ASM(a,b,c,d) { 				\
