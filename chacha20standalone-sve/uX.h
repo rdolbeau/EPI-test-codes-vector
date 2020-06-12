@@ -364,10 +364,6 @@ if (bytes>=16*vc) {
 
 #define ONEQUAD_TRANSPOSE_ASM(a,b,c,d) { 				\
 	svuint32_t temp0, temp1, temp2, temp3;				\
-	const u8 *m0 = m, *out0 = out;					\
-	const u8 *m64 = m+64, *out64 = out+64;				\
-	const u8 *m128 = m+128, *out128 = out+128;			\
-	const u8 *m192 = m+192, *out192 = out+192;			\
 	asm volatile("ptrue p0.d\n"					\
 		     "add %[x_"#a"].s, %[x_"#a"].s, %[orig"#a"].s\n"	\
 		     "add %[x_"#b"].s, %[x_"#b"].s, %[orig"#b"].s\n"	\
@@ -402,7 +398,7 @@ if (bytes>=16*vc) {
 		     : [x_##a] "+w" (x_##a), [x_##b] "+w" (x_##b), [x_##c] "+w" (x_##c), [x_##d] "+w" (x_##d), \
 		       [temp0] "=w" (temp0), [temp1] "=w"(temp1), [temp2] "=w" (temp2), [temp3] "=w"(temp3) \
 		     : [orig##a] "w" (orig##a), [orig##b] "w" (orig##b), [orig##c] "w" (orig##c), [orig##d] "w" (orig##d), \
-		       [m0] "r" ((m0)), [out0] "r" ((out0)),		\
+		       [m0] "r" ((m)), [out0] "r" ((out)),		\
 		       [gvv] "w" (gvv)					\
 		     : "p0", "memory", "x25", "x30", "x29", "x28", "x27", "x26" \
 		     );							\
