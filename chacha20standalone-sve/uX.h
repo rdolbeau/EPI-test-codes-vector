@@ -11,11 +11,163 @@ This does a variable number of blocks, depending on the SVE vector size.
 
 #define VEC4_ROT16(a) svrevh_u32_z(svptrue_b32(), a)
 
-#define VEC4_QUARTERROUND(a,b,c,d)                                \
+#define VEC4_QUARTERROUND_INT(a,b,c,d)                                \
    x_##a = svadd_u32_z(svptrue_b32(), x_##a, x_##b); t_##a = sveor_u32_z(svptrue_b32(), x_##d, x_##a); x_##d = VEC4_ROT16(t_##a); \
    x_##c = svadd_u32_z(svptrue_b32(), x_##c, x_##d); t_##c = sveor_u32_z(svptrue_b32(), x_##b, x_##c); x_##b = VEC4_ROT(t_##c, 12); \
    x_##a = svadd_u32_z(svptrue_b32(), x_##a, x_##b); t_##a = sveor_u32_z(svptrue_b32(), x_##d, x_##a); x_##d = VEC4_ROT(t_##a,  8); \
    x_##c = svadd_u32_z(svptrue_b32(), x_##c, x_##d); t_##c = sveor_u32_z(svptrue_b32(), x_##b, x_##c); x_##b = VEC4_ROT(t_##c,  7)
+
+#define VEC4_QUARTERROUND_ASM(a,b,c,d)				\
+	asm volatile("add %0.s, %0.s, %1.s\n"			\
+		     "eor %3.s, %3.s, %0.s\n"			\
+		     "revh %3.s, p0/m, %3.s\n"			\
+		     "\n"					\
+		     "add %2.s, %2.s, %3.s\n"			\
+		     "eor %1.s, %1.s, %2.s\n"			\
+		     "lsr %4.s, %1.s, #20\n"			\
+		     "lsl %1.s, %1.s, #12\n"			\
+		     "eor %1.s, %1.s, %4.s\n"			\
+		     "\n"					\
+		     "add %0.s, %0.s, %1.s\n"			\
+		     "eor %3.s, %3.s, %0.s\n"			\
+		     "lsr %4.s, %3.s, #24\n"			\
+		     "lsl %3.s, %3.s, #8\n"			\
+		     "eor %3.s, %3.s, %4.s\n"			\
+		     "\n"					\
+		     "add %2.s, %2.s, %3.s\n"			\
+		     "eor %1.s, %1.s, %2.s\n"			\
+		     "lsr %4.s, %1.s, #25\n"			\
+		     "lsl %1.s, %1.s, #7\n"			\
+		     "eor %1.s, %1.s, %4.s\n"			\
+		     "\n"					\
+		     : "+&w" (x_##a), "+&w" (x_##b), "+&w" (x_##c), "+&w" (x_##d), "=w" (temp1))
+
+#define VEC4_QUARTERROUND(a,b,c,d) VEC4_QUARTERROUND_ASM(a,b,c,d)
+
+
+#define VEC4_DOUBLEQUARTERROUND_ASM(a,b,c,d,e,f,g,h)		\
+	asm volatile("add %0.s, %0.s, %1.s\n"			\
+		     "add %4.s, %4.s, %5.s\n"			\
+		     "eor %3.s, %3.s, %0.s\n"			\
+		     "eor %7.s, %7.s, %4.s\n"			\
+		     "revh %3.s, p0/m, %3.s\n"			\
+		     "revh %7.s, p0/m, %7.s\n"			\
+		     "\n"					\
+		     "add %2.s, %2.s, %3.s\n"			\
+		     "add %6.s, %6.s, %7.s\n"			\
+		     "eor %1.s, %1.s, %2.s\n"			\
+		     "eor %5.s, %5.s, %6.s\n"			\
+		     "lsr %8.s, %1.s, #20\n"			\
+		     "lsr %9.s, %5.s, #20\n"			\
+		     "lsl %1.s, %1.s, #12\n"			\
+		     "lsl %5.s, %5.s, #12\n"			\
+		     "eor %1.s, %1.s, %8.s\n"			\
+		     "eor %5.s, %5.s, %9.s\n"			\
+		     "\n"					\
+		     "add %0.s, %0.s, %1.s\n"			\
+		     "add %4.s, %4.s, %5.s\n"			\
+		     "eor %3.s, %3.s, %0.s\n"			\
+		     "eor %7.s, %7.s, %4.s\n"			\
+		     "lsr %8.s, %3.s, #24\n"			\
+		     "lsr %9.s, %7.s, #24\n"			\
+		     "lsl %3.s, %3.s, #8\n"			\
+		     "lsl %7.s, %7.s, #8\n"			\
+		     "eor %3.s, %3.s, %8.s\n"			\
+		     "eor %7.s, %7.s, %9.s\n"			\
+		     "\n"					\
+		     "add %2.s, %2.s, %3.s\n"			\
+		     "add %6.s, %6.s, %7.s\n"			\
+		     "eor %1.s, %1.s, %2.s\n"			\
+		     "eor %5.s, %5.s, %6.s\n"			\
+		     "lsr %8.s, %1.s, #25\n"			\
+		     "lsr %9.s, %5.s, #25\n"			\
+		     "lsl %1.s, %1.s, #7\n"			\
+		     "lsl %5.s, %5.s, #7\n"			\
+		     "eor %1.s, %1.s, %8.s\n"			\
+		     "eor %5.s, %5.s, %9.s\n"			\
+		     "\n"					\
+		     : "+&w" (x_##a), "+&w" (x_##b), "+&w" (x_##c), "+&w" (x_##d), "+&w" (x_##e), "+&w" (x_##f), "+&w" (x_##g), "+&w" (x_##h), "=w" (temp1), "=w" (temp2))
+
+#define VEC4_QUADQUARTERROUND_ASM(a,b,c,d, e,f,g,h, i,j,k,l, m,n,o,p)	\
+	asm volatile("add %0.s, %0.s, %1.s\n"			\
+		     "add %4.s, %4.s, %5.s\n"			\
+		     "add %8.s, %8.s, %9.s\n"			\
+		     "add %12.s, %12.s, %13.s\n"		\
+		     "eor %3.s, %3.s, %0.s\n"			\
+		     "eor %7.s, %7.s, %4.s\n"			\
+		     "eor %11.s, %11.s, %8.s\n"			\
+		     "eor %15.s, %15.s, %12.s\n"		\
+		     "revh %3.s, p0/m, %3.s\n"			\
+		     "revh %7.s, p0/m, %7.s\n"			\
+		     "revh %11.s, p0/m, %11.s\n"		\
+		     "revh %15.s, p0/m, %15.s\n"		\
+		     "\n"					\
+		     "add %2.s, %2.s, %3.s\n"			\
+		     "add %6.s, %6.s, %7.s\n"			\
+		     "add %10.s, %10.s, %11.s\n"		\
+		     "add %14.s, %14.s, %15.s\n"		\
+		     "eor %1.s, %1.s, %2.s\n"			\
+		     "eor %5.s, %5.s, %6.s\n"			\
+		     "eor %9.s, %9.s, %10.s\n"			\
+		     "eor %13.s, %13.s, %14.s\n"		\
+		     "lsr %16.s, %1.s, #20\n"			\
+		     "lsr %17.s, %5.s, #20\n"			\
+		     "lsr %18.s, %9.s, #20\n"			\
+		     "lsr %19.s, %13.s, #20\n"			\
+		     "lsl %1.s, %1.s, #12\n"			\
+		     "lsl %5.s, %5.s, #12\n"			\
+		     "lsl %9.s, %9.s, #12\n"			\
+		     "lsl %13.s, %13.s, #12\n"			\
+		     "eor %1.s, %1.s, %16.s\n"			\
+		     "eor %5.s, %5.s, %17.s\n"			\
+		     "eor %9.s, %9.s, %18.s\n"			\
+		     "eor %13.s, %13.s, %19.s\n"		\
+		     "\n"					\
+		     "add %0.s, %0.s, %1.s\n"			\
+		     "add %4.s, %4.s, %5.s\n"			\
+		     "add %8.s, %8.s, %9.s\n"			\
+		     "add %12.s, %12.s, %13.s\n"		\
+		     "eor %3.s, %3.s, %0.s\n"			\
+		     "eor %7.s, %7.s, %4.s\n"			\
+		     "eor %11.s, %11.s, %8.s\n"			\
+		     "eor %15.s, %15.s, %12.s\n"		\
+		     "lsr %16.s, %3.s, #24\n"			\
+		     "lsr %17.s, %7.s, #24\n"			\
+		     "lsr %18.s, %11.s, #24\n"			\
+		     "lsr %19.s, %15.s, #24\n"			\
+		     "lsl %3.s, %3.s, #8\n"			\
+		     "lsl %7.s, %7.s, #8\n"			\
+		     "lsl %11.s, %11.s, #8\n"			\
+		     "lsl %15.s, %15.s, #8\n"			\
+		     "eor %3.s, %3.s, %16.s\n"			\
+		     "eor %7.s, %7.s, %17.s\n"			\
+		     "eor %11.s, %11.s, %18.s\n"		\
+		     "eor %15.s, %15.s, %19.s\n"		\
+		     "\n"					\
+		     "add %2.s, %2.s, %3.s\n"			\
+		     "add %6.s, %6.s, %7.s\n"			\
+		     "add %10.s, %10.s, %11.s\n"		\
+		     "add %14.s, %14.s, %15.s\n"		\
+		     "eor %1.s, %1.s, %2.s\n"			\
+		     "eor %5.s, %5.s, %6.s\n"			\
+		     "eor %9.s, %9.s, %10.s\n"			\
+		     "eor %13.s, %13.s, %14.s\n"		\
+		     "lsr %16.s, %1.s, #25\n"			\
+		     "lsr %17.s, %5.s, #25\n"			\
+		     "lsr %18.s, %9.s, #25\n"			\
+		     "lsr %19.s, %13.s, #25\n"			\
+		     "lsl %1.s, %1.s, #7\n"			\
+		     "lsl %5.s, %5.s, #7\n"			\
+		     "lsl %9.s, %9.s, #7\n"			\
+		     "lsl %13.s, %13.s, #7\n"			\
+		     "eor %1.s, %1.s, %16.s\n"			\
+		     "eor %5.s, %5.s, %17.s\n"			\
+		     "eor %9.s, %9.s, %18.s\n"			\
+		     "eor %13.s, %13.s, %19.s\n"		\
+		     "\n"					\
+		     : "+&w" (x_##a), "+&w" (x_##b), "+&w" (x_##c), "+&w" (x_##d), "+&w" (x_##e), "+&w" (x_##f), "+&w" (x_##g), "+&w" (x_##h), \
+		       "+&w" (x_##i), "+&w" (x_##j), "+&w" (x_##k), "+&w" (x_##l), "+&w" (x_##m), "+&w" (x_##n), "+&w" (x_##o), "+&w" (x_##p), \
+		       "=w" (temp1), "=w" (temp2), "=w" (temp3), "=w" (temp4))
 
   if (!bytes) return;
 uint64_t vc = svcntb(); /* how many bytes in a vector */
@@ -116,6 +268,8 @@ if (bytes>=16*vc) {
     x[13] = (in1213>>32)&0xFFFFFFFF;
 
     for (i = 0 ; i < ROUNDS ; i+=2) {
+	    svuint32_t temp1, temp2, temp3, temp4;
+#if 0
       VEC4_QUARTERROUND( 0, 4, 8,12);
       VEC4_QUARTERROUND( 1, 5, 9,13);
       VEC4_QUARTERROUND( 2, 6,10,14);
@@ -124,6 +278,17 @@ if (bytes>=16*vc) {
       VEC4_QUARTERROUND( 1, 6,11,12);
       VEC4_QUARTERROUND( 2, 7, 8,13);
       VEC4_QUARTERROUND( 3, 4, 9,14);
+#else
+#if 0
+      VEC4_DOUBLEQUARTERROUND_ASM( 0, 4, 8,12, 1, 5, 9,13);
+      VEC4_DOUBLEQUARTERROUND_ASM( 2, 6,10,14, 3, 7,11,15);
+      VEC4_DOUBLEQUARTERROUND_ASM( 0, 5,10,15, 1, 6,11,12);
+      VEC4_DOUBLEQUARTERROUND_ASM( 2, 7, 8,13, 3, 4, 9,14);
+#else
+#endif
+      VEC4_QUADQUARTERROUND_ASM( 0, 4, 8,12, 1, 5, 9,13, 2, 6,10,14, 3, 7,11,15);
+      VEC4_QUADQUARTERROUND_ASM( 0, 5,10,15, 1, 6,11,12, 2, 7, 8,13, 3, 4, 9,14);
+#endif
     }
 
 #define ONEQUAD_TRANSPOSE(a,b,c,d)                                      \
@@ -186,3 +351,7 @@ if (bytes>=16*vc) {
  }
 #undef VEC4_ROT
 #undef VEC4_QUARTERROUND
+#undef VEC4_QUARTERROUND_INT
+#undef VEC4_QUARTERROUND_ASM
+#undef VEC4_DOUBLEQUARTERROUND_ASM
+#undef VEC4_QUADQUARTERROUND_ASM
