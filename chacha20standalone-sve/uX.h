@@ -140,18 +140,10 @@ This does a variable number of blocks, depending on the SVE vector size.
 		     "eor %7.d, %7.d, %4.d\n"			\
 		     "eor %11.d, %11.d, %8.d\n"			\
 		     "eor %15.d, %15.d, %12.d\n"		\
-		     "lsr %16.s, %3.s, #24\n"			\
-		     "lsr %17.s, %7.s, #24\n"			\
-		     "lsr %18.s, %11.s, #24\n"			\
-		     "lsr %19.s, %15.s, #24\n"			\
-		     "lsl %3.s, %3.s, #8\n"			\
-		     "lsl %7.s, %7.s, #8\n"			\
-		     "lsl %11.s, %11.s, #8\n"			\
-		     "lsl %15.s, %15.s, #8\n"			\
-		     "eor %3.d, %3.d, %16.d\n"			\
-		     "eor %7.d, %7.d, %17.d\n"			\
-		     "eor %11.d, %11.d, %18.d\n"		\
-		     "eor %15.d, %15.d, %19.d\n"		\
+		     "tbl %3.b, { %3.b }, %[tbl_index].b\n"	\
+		     "tbl %7.b, { %7.b }, %[tbl_index].b\n"	\
+		     "tbl %11.b, { %11.b }, %[tbl_index].b\n"	\
+		     "tbl %15.b, { %15.b }, %[tbl_index].b\n"	\
 		     "\n"					\
 		     "add %2.s, %2.s, %3.s\n"			\
 		     "add %6.s, %6.s, %7.s\n"			\
@@ -176,7 +168,7 @@ This does a variable number of blocks, depending on the SVE vector size.
 		     "\n"					\
 		     : "+&w" (x_##a), "+&w" (x_##b), "+&w" (x_##c), "+&w" (x_##d), "+&w" (x_##e), "+&w" (x_##f), "+&w" (x_##g), "+&w" (x_##h), \
 		       "+&w" (x_##i), "+&w" (x_##j), "+&w" (x_##k), "+&w" (x_##l), "+&w" (x_##m), "+&w" (x_##n), "+&w" (x_##o), "+&w" (x_##p), \
-		       "=w" (temp1), "=w" (temp2), "=w" (temp3), "=w" (temp4) : [p0] "Upl" (p0))
+		       "=w" (temp1), "=w" (temp2), "=w" (temp3), "=w" (temp4) : [p0] "Upl" (p0), [tbl_index] "w" (tbl_index))
 
   if (!bytes) return;
 uint64_t vc = svcntb(); /* how many bytes in a vector */
@@ -232,6 +224,10 @@ if (bytes>=16*vc) {
   svuint32_t t_13;
   svuint32_t t_14;
   svuint32_t t_15;
+  svuint32_t tbl_index;
+
+  tbl_index = svreinterpret_u32_u8(svindex_u8(0,1));
+  tbl_index = VEC4_ROT(tbl_index, 8);
 
     /* svindex() makes it easy to build the input counter */
     const svuint64_t addv13 = svindex_u64(0, 1);
