@@ -7,6 +7,10 @@ Public domain.
 This does a variable number of blocks, depending on the SVE vector size.
 */
 
+//#define LOOP_ASM_1
+//#define LOOP_ASM_2
+#define LOOP_ASM_4
+
 #define VEC4_ROT(a,imm) sveor_u32_z(svptrue_b32(), svlsl_n_u32_z(svptrue_b32(), a, imm),svlsr_n_u32_z(svptrue_b32(), a, 32-imm))
 
 #define VEC4_ROT16(a) svrevh_u32_z(svptrue_b32(), a)
@@ -18,10 +22,9 @@ This does a variable number of blocks, depending on the SVE vector size.
    x_##c = svadd_u32_z(svptrue_b32(), x_##c, x_##d); t_##c = sveor_u32_z(svptrue_b32(), x_##b, x_##c); x_##b = VEC4_ROT(t_##c,  7)
 
 #define VEC4_QUARTERROUND_ASM(a,b,c,d)				\
-	asm volatile("ptrue p0.s\n"				\
-		     "add %0.s, %0.s, %1.s\n"			\
+	asm volatile("add %0.s, %0.s, %1.s\n"			\
 		     "eor %3.d, %3.d, %0.d\n"			\
-		     "revh %3.s, p0/m, %3.s\n"			\
+		     "revh %3.s, %[p0]/m, %3.s\n"		\
 		     "\n"					\
 		     "add %2.s, %2.s, %3.s\n"			\
 		     "eor %1.d, %1.d, %2.d\n"			\
@@ -41,19 +44,16 @@ This does a variable number of blocks, depending on the SVE vector size.
 		     "lsl %1.s, %1.s, #7\n"			\
 		     "eor %1.d, %1.d, %4.d\n"			\
 		     "\n"					\
-		     : "+&w" (x_##a), "+&w" (x_##b), "+&w" (x_##c), "+&w" (x_##d), "=w" (temp1) : : "p0")
-
-#define VEC4_QUARTERROUND(a,b,c,d) VEC4_QUARTERROUND_ASM(a,b,c,d)
+		     : "+&w" (x_##a), "+&w" (x_##b), "+&w" (x_##c), "+&w" (x_##d), "=w" (temp1) : [p0] "Upl" (p0))
 
 
 #define VEC4_DOUBLEQUARTERROUND_ASM(a,b,c,d,e,f,g,h)		\
-	asm volatile("ptrue p0.s\n"				\
-		     "add %0.s, %0.s, %1.s\n"			\
+	asm volatile("add %0.s, %0.s, %1.s\n"			\
 		     "add %4.s, %4.s, %5.s\n"			\
 		     "eor %3.d, %3.d, %0.d\n"			\
 		     "eor %7.d, %7.d, %4.d\n"			\
-		     "revh %3.s, p0/m, %3.s\n"			\
-		     "revh %7.s, p0/m, %7.s\n"			\
+		     "revh %3.s, %[p0]/m, %3.s\n"		\
+		     "revh %7.s, %[p0]/m, %7.s\n"		\
 		     "\n"					\
 		     "add %2.s, %2.s, %3.s\n"			\
 		     "add %6.s, %6.s, %7.s\n"			\
@@ -88,12 +88,13 @@ This does a variable number of blocks, depending on the SVE vector size.
 		     "eor %1.d, %1.d, %8.d\n"			\
 		     "eor %5.d, %5.d, %9.d\n"			\
 		     "\n"					\
-		     : "+&w" (x_##a), "+&w" (x_##b), "+&w" (x_##c), "+&w" (x_##d), "+&w" (x_##e), "+&w" (x_##f), "+&w" (x_##g), "+&w" (x_##h), "=w" (temp1), "=w" (temp2) : : "p0")
+		     : "+&w" (x_##a), "+&w" (x_##b), "+&w" (x_##c), "+&w" (x_##d), \
+		       "+&w" (x_##e), "+&w" (x_##f), "+&w" (x_##g), "+&w" (x_##h), \
+		       "=w" (temp1), "=w" (temp2) : [p0] "Upl" (p0))
 
 /* this one has too many arguments for GCC, works fine with armclang though */
 #define VEC4_QUADQUARTERROUND_ASM(a,b,c,d, e,f,g,h, i,j,k,l, m,n,o,p)	\
-	asm volatile("ptrue p0.s\n"				\
-		     "add %0.s, %0.s, %1.s\n"			\
+	asm volatile("add %0.s, %0.s, %1.s\n"			\
 		     "add %4.s, %4.s, %5.s\n"			\
 		     "add %8.s, %8.s, %9.s\n"			\
 		     "add %12.s, %12.s, %13.s\n"		\
@@ -101,10 +102,10 @@ This does a variable number of blocks, depending on the SVE vector size.
 		     "eor %7.d, %7.d, %4.d\n"			\
 		     "eor %11.d, %11.d, %8.d\n"			\
 		     "eor %15.d, %15.d, %12.d\n"		\
-		     "revh %3.s, p0/m, %3.s\n"			\
-		     "revh %7.s, p0/m, %7.s\n"			\
-		     "revh %11.s, p0/m, %11.s\n"		\
-		     "revh %15.s, p0/m, %15.s\n"		\
+		     "revh %3.s, %[p0]/m, %3.s\n"		\
+		     "revh %7.s, %[p0]/m, %7.s\n"		\
+		     "revh %11.s, %[p0]/m, %11.s\n"		\
+		     "revh %15.s, %[p0]/m, %15.s\n"		\
 		     "\n"					\
 		     "add %2.s, %2.s, %3.s\n"			\
 		     "add %6.s, %6.s, %7.s\n"			\
@@ -171,7 +172,7 @@ This does a variable number of blocks, depending on the SVE vector size.
 		     "\n"					\
 		     : "+&w" (x_##a), "+&w" (x_##b), "+&w" (x_##c), "+&w" (x_##d), "+&w" (x_##e), "+&w" (x_##f), "+&w" (x_##g), "+&w" (x_##h), \
 		       "+&w" (x_##i), "+&w" (x_##j), "+&w" (x_##k), "+&w" (x_##l), "+&w" (x_##m), "+&w" (x_##n), "+&w" (x_##o), "+&w" (x_##p), \
-		       "=w" (temp1), "=w" (temp2), "=w" (temp3), "=w" (temp4) : : "p0")
+		       "=w" (temp1), "=w" (temp2), "=w" (temp3), "=w" (temp4) : [p0] "Upl" (p0))
 
   if (!bytes) return;
 uint64_t vc = svcntb(); /* how many bytes in a vector */
@@ -272,8 +273,7 @@ if (bytes>=16*vc) {
     x[13] = (in1213>>32)&0xFFFFFFFF;
 
     for (i = 0 ; i < ROUNDS ; i+=2) {
-	    svuint32_t temp1, temp2, temp3, temp4;
-#if 0
+#if !defined(LOOP_ASM_1) && !defined(LOOP_ASM_2) && !defined(LOOP_ASM_4)
       VEC4_QUARTERROUND( 0, 4, 8,12);
       VEC4_QUARTERROUND( 1, 5, 9,13);
       VEC4_QUARTERROUND( 2, 6,10,14);
@@ -283,16 +283,30 @@ if (bytes>=16*vc) {
       VEC4_QUARTERROUND( 2, 7, 8,13);
       VEC4_QUARTERROUND( 3, 4, 9,14);
 #else
-#if 0
+      svuint32_t temp1, temp2, temp3, temp4;
+      svbool_t p0;
+      asm volatile("ptrue %0.s\n" : "=Upl" (p0));
+#if defined(LOOP_ASM_1)
+      VEC4_QUARTERROUND_ASM( 0, 4, 8,12);
+      VEC4_QUARTERROUND_ASM( 1, 5, 9,13);
+      VEC4_QUARTERROUND_ASM( 2, 6,10,14);
+      VEC4_QUARTERROUND_ASM( 3, 7,11,15);
+      VEC4_QUARTERROUND_ASM( 0, 5,10,15);
+      VEC4_QUARTERROUND_ASM( 1, 6,11,12);
+      VEC4_QUARTERROUND_ASM( 2, 7, 8,13);
+      VEC4_QUARTERROUND_ASM( 3, 4, 9,14);
+#elif defined(LOOP_ASM_2)
       VEC4_DOUBLEQUARTERROUND_ASM( 0, 4, 8,12, 1, 5, 9,13);
       VEC4_DOUBLEQUARTERROUND_ASM( 2, 6,10,14, 3, 7,11,15);
       VEC4_DOUBLEQUARTERROUND_ASM( 0, 5,10,15, 1, 6,11,12);
       VEC4_DOUBLEQUARTERROUND_ASM( 2, 7, 8,13, 3, 4, 9,14);
-#else
+#elif defined(LOOP_ASM_4)
       VEC4_QUADQUARTERROUND_ASM( 0, 4, 8,12, 1, 5, 9,13, 2, 6,10,14, 3, 7,11,15);
       VEC4_QUADQUARTERROUND_ASM( 0, 5,10,15, 1, 6,11,12, 2, 7, 8,13, 3, 4, 9,14);
+#else
+#error "ASM falltrhough"
 #endif
-#endif
+#endif // !ASM
     }
 
 #define ONEQUAD_TRANSPOSE(a,b,c,d)                                      \
@@ -324,14 +338,13 @@ if (bytes>=16*vc) {
 #define ONEQUAD_TRANSPOSE_ASM(a,b,c,d) { 				\
 	svuint32_t temp0, temp1, temp2, temp3;				\
 	svuint32_t buf0, buf1, buf2, buf3;				\
-	asm volatile("ptrue p0.d\n"					\
-		     "add x25, %[m0], #64\n"				\
+	asm volatile("add x25, %[m0], #64\n"				\
 		     "add x30, %[m0], #128\n"				\
 		     "add x29, %[m0], #192\n"				\
-		     "ld1d { %[buf0].d }, p0/z, [%[m0], %[gvv].d]\n"	\
-		     "ld1d { %[buf1].d }, p0/z, [x25, %[gvv].d]\n"	\
-		     "ld1d { %[buf2].d }, p0/z, [x30, %[gvv].d]\n"	\
-		     "ld1d { %[buf3].d }, p0/z, [x29, %[gvv].d]\n"	\
+		     "ld1d { %[buf0].d }, %[p0]/z, [%[m0], %[gvv].d]\n"	\
+		     "ld1d { %[buf1].d }, %[p0]/z, [x25, %[gvv].d]\n"	\
+		     "ld1d { %[buf2].d }, %[p0]/z, [x30, %[gvv].d]\n"	\
+		     "ld1d { %[buf3].d }, %[p0]/z, [x29, %[gvv].d]\n"	\
 		     "add %[x_"#a"].s, %[x_"#a"].s, %[orig"#a"].s\n"	\
 		     "add %[x_"#b"].s, %[x_"#b"].s, %[orig"#b"].s\n"	\
 		     "add %[x_"#c"].s, %[x_"#c"].s, %[orig"#c"].s\n"	\
@@ -351,20 +364,20 @@ if (bytes>=16*vc) {
 		     "eor %[x_"#b"].d, %[x_"#b"].d, %[buf1].d\n"	\
 		     "eor %[x_"#c"].d, %[x_"#c"].d, %[buf2].d\n"	\
 		     "eor %[x_"#d"].d, %[x_"#d"].d, %[buf3].d\n"	\
-		     "st1d { %[x_"#a"].d }, p0, [%[out0], %[gvv].d]\n"	\
-		     "st1d { %[x_"#b"].d }, p0, [x28, %[gvv].d]\n"	\
-		     "st1d { %[x_"#c"].d }, p0, [x27, %[gvv].d]\n"	\
-		     "st1d { %[x_"#d"].d }, p0, [x26, %[gvv].d]\n"	\
+		     "st1d { %[x_"#a"].d }, %[p0], [%[out0], %[gvv].d]\n"	\
+		     "st1d { %[x_"#b"].d }, %[p0], [x28, %[gvv].d]\n"	\
+		     "st1d { %[x_"#c"].d }, %[p0], [x27, %[gvv].d]\n"	\
+		     "st1d { %[x_"#d"].d }, %[p0], [x26, %[gvv].d]\n"	\
 		     : [x_##a] "+w" (x_##a), [x_##b] "+w" (x_##b), [x_##c] "+w" (x_##c), [x_##d] "+w" (x_##d), \
 		       [temp0] "=&w" (temp0), [temp1] "=&w"(temp1), [temp2] "=&w" (temp2), [temp3] "=&w"(temp3), \
 		       [buf0] "=&w" (buf0), [buf1] "=&w"(buf1), [buf2] "=&w" (buf2), [buf3] "=&w"(buf3) \
 		     : [orig##a] "w" (orig##a), [orig##b] "w" (orig##b), [orig##c] "w" (orig##c), [orig##d] "w" (orig##d), \
 		       [m0] "r" ((m)), [out0] "r" ((out)),		\
-		       [gvv] "w" (gvv)					\
-		     : "p0", "memory", "x25", "x30", "x29", "x28", "x27", "x26" \
+		       [gvv] "w" (gvv), [p0] "Upl" (p0)			\
+		     : "memory", "x25", "x30", "x29", "x28", "x27", "x26" \
 		     );							\
     }
-    
+
 #define ONEQUAD(a,b,c,d) ONEQUAD_TRANSPOSE(a,b,c,d)
 
     svint64_t gvv, gvvl, gvvh;
@@ -389,6 +402,24 @@ if (bytes>=16*vc) {
     ONEQUAD(12,13,14,15);
     m-=48;
     out-=48;
+#else
+#if 0
+    {
+      svbool_t p0;
+      asm volatile("ptrue %0.d\n" : "=Upl" (p0));
+      ONEQUAD_TRANSPOSE_ASM(0,1,2,3);
+      m+=16;
+      out+=16;
+      ONEQUAD_TRANSPOSE_ASM(4,5,6,7);
+      m+=16;
+      out+=16;
+      ONEQUAD_TRANSPOSE_ASM(8,9,10,11);
+      m+=16;
+      out+=16;
+      ONEQUAD_TRANSPOSE_ASM(12,13,14,15);
+      m-=48;
+      out-=48;
+    }
 #else
 #define GATHER4(offset, a, b, c, d)					\
     asm volatile("add x25, %[m0], #64\n"				\
@@ -454,10 +485,17 @@ if (bytes>=16*vc) {
 	    TRANSSTORE4(32, 8, 9, 10, 11);
 	    TRANSSTORE4(48, 12, 13, 14, 15);
     }
+
+#undef ADD4
+#undef GATHER4
+#undef TRANSSTORE4
+
+#endif
 #endif
     
 #undef ONEQUAD
 #undef ONEQUAD_TRANSPOSE
+#undef ONEQUAD_TRANSPOSE_ASM
 
     bytes -= 16*vc;
     out += 16*vc;
