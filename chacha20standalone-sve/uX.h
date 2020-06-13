@@ -11,15 +11,19 @@ This does a variable number of blocks, depending on the SVE vector size.
 //#define LOOP_ASM_2
 #define LOOP_ASM_4
 
-#define VEC4_ROT(a,imm) sveor_u32_z(svptrue_b32(), svlsl_n_u32_z(svptrue_b32(), a, imm),svlsr_n_u32_z(svptrue_b32(), a, 32-imm))
+//#define FINAL_BUILTIN_128
+#define FINAL_BUILTIN_64
+//#define FINAL_BUILTIN_32
 
-#define VEC4_ROT16(a) svrevh_u32_z(svptrue_b32(), a)
+#define VEC4_ROT(a,imm) sveor_u32_x(svptrue_b32(), svlsl_n_u32_x(svptrue_b32(), a, imm),svlsr_n_u32_x(svptrue_b32(), a, 32-imm))
+
+#define VEC4_ROT16(a) svrevh_u32_x(svptrue_b32(), a)
 
 #define VEC4_QUARTERROUND_INT(a,b,c,d)                                \
-   x_##a = svadd_u32_z(svptrue_b32(), x_##a, x_##b); t_##a = sveor_u32_z(svptrue_b32(), x_##d, x_##a); x_##d = VEC4_ROT16(t_##a); \
-   x_##c = svadd_u32_z(svptrue_b32(), x_##c, x_##d); t_##c = sveor_u32_z(svptrue_b32(), x_##b, x_##c); x_##b = VEC4_ROT(t_##c, 12); \
-   x_##a = svadd_u32_z(svptrue_b32(), x_##a, x_##b); t_##a = sveor_u32_z(svptrue_b32(), x_##d, x_##a); x_##d = VEC4_ROT(t_##a,  8); \
-   x_##c = svadd_u32_z(svptrue_b32(), x_##c, x_##d); t_##c = sveor_u32_z(svptrue_b32(), x_##b, x_##c); x_##b = VEC4_ROT(t_##c,  7)
+   x_##a = svadd_u32_x(svptrue_b32(), x_##a, x_##b); t_##a = sveor_u32_x(svptrue_b32(), x_##d, x_##a); x_##d = VEC4_ROT16(t_##a); \
+   x_##c = svadd_u32_x(svptrue_b32(), x_##c, x_##d); t_##c = sveor_u32_x(svptrue_b32(), x_##b, x_##c); x_##b = VEC4_ROT(t_##c, 12); \
+   x_##a = svadd_u32_x(svptrue_b32(), x_##a, x_##b); t_##a = sveor_u32_x(svptrue_b32(), x_##d, x_##a); x_##d = VEC4_ROT(t_##a,  8); \
+   x_##c = svadd_u32_x(svptrue_b32(), x_##c, x_##d); t_##c = sveor_u32_x(svptrue_b32(), x_##b, x_##c); x_##b = VEC4_ROT(t_##c,  7)
 
 #define VEC4_QUARTERROUND_ASM(a,b,c,d)				\
 	asm volatile("add %0.s, %0.s, %1.s\n"			\
@@ -177,6 +181,8 @@ This does a variable number of blocks, depending on the SVE vector size.
   if (!bytes) return;
 uint64_t vc = svcntb(); /* how many bytes in a vector */
 if (bytes>=16*vc) {
+
+  while (bytes >= 16*vc) {
   u32 in12, in13;
   svuint32_t x_0 = svdup_n_u32(x[0]);
   svuint32_t x_1 = svdup_n_u32(x[1]);
@@ -227,28 +233,9 @@ if (bytes>=16*vc) {
   svuint32_t t_14;
   svuint32_t t_15;
 
-  while (bytes >= 16*vc) {
-    x_0 = orig0;
-    x_1 = orig1;
-    x_2 = orig2;
-    x_3 = orig3;
-    x_4 = orig4;
-    x_5 = orig5;
-    x_6 = orig6;
-    x_7 = orig7;
-    x_8 = orig8;
-    x_9 = orig9;
-    x_10 = orig10;
-    x_11 = orig11;
-    //x_12 = orig12; /* useless */
-    //x_13 = orig13; /* useless */
-    x_14 = orig14;
-    x_15 = orig15;
-
-
     /* svindex() makes it easy to build the input counter */
     const svuint64_t addv13 = svindex_u64(0, 1);
-    const svuint64_t addv12 = svadd_n_u64_z(svptrue_b64(), addv13, vc/8);
+    const svuint64_t addv12 = svadd_n_u64_x(svptrue_b64(), addv13, vc/8);
     svuint64_t t12, t13;
     in12 = x[12];
     in13 = x[13];
@@ -256,8 +243,8 @@ if (bytes>=16*vc) {
     t12 = svdup_n_u64(in1213);
     t13 = svdup_n_u64(in1213);
 
-    x_12 = svreinterpret_u32_u64(svadd_u64_z(svptrue_b64(), addv12, t12));
-    x_13 = svreinterpret_u32_u64(svadd_u64_z(svptrue_b64(), addv13, t13));
+    x_12 = svreinterpret_u32_u64(svadd_u64_x(svptrue_b64(), addv12, t12));
+    x_13 = svreinterpret_u32_u64(svadd_u64_x(svptrue_b64(), addv13, t13));
 
     svuint32_t t = x_12;
     x_12 = svuzp1_u32(x_13, x_12);
@@ -304,7 +291,7 @@ if (bytes>=16*vc) {
       VEC4_QUADQUARTERROUND_ASM( 0, 4, 8,12, 1, 5, 9,13, 2, 6,10,14, 3, 7,11,15);
       VEC4_QUADQUARTERROUND_ASM( 0, 5,10,15, 1, 6,11,12, 2, 7, 8,13, 3, 4, 9,14);
 #else
-#error "ASM falltrhough"
+#error "ASM fallthrough"
 #endif
 #endif // !ASM
     }
@@ -313,10 +300,10 @@ if (bytes>=16*vc) {
     {                                                                   \
       svuint32_t t00, t01, t10, t11;                                    \
       svuint64_t t0, t1, t2, t3;                                        \
-      x_##a = svadd_u32_z(svptrue_b32(), x_##a, orig##a);                                \
-      x_##b = svadd_u32_z(svptrue_b32(), x_##b, orig##b);                                \
-      x_##c = svadd_u32_z(svptrue_b32(), x_##c, orig##c);                                \
-      x_##d = svadd_u32_z(svptrue_b32(), x_##d, orig##d);                                \
+      x_##a = svadd_u32_x(svptrue_b32(), x_##a, orig##a);                                \
+      x_##b = svadd_u32_x(svptrue_b32(), x_##b, orig##b);                                \
+      x_##c = svadd_u32_x(svptrue_b32(), x_##c, orig##c);                                \
+      x_##d = svadd_u32_x(svptrue_b32(), x_##d, orig##d);                                \
       t00 = svtrn1_u32(x_##a,x_##b);\
       t01 = svtrn2_u32(x_##a,x_##b);\
       t10 = svtrn1_u32(x_##c,x_##d);\
@@ -325,13 +312,13 @@ if (bytes>=16*vc) {
       x_##b = svreinterpret_u32_u64(svtrn1_u64(svreinterpret_u64_u32(t01), svreinterpret_u64_u32(t11)));\
       x_##c = svreinterpret_u32_u64(svtrn2_u64(svreinterpret_u64_u32(t00), svreinterpret_u64_u32(t10)));\
       x_##d = svreinterpret_u32_u64(svtrn2_u64(svreinterpret_u64_u32(t01), svreinterpret_u64_u32(t11)));\
-      t0 = sveor_u64_z(svptrue_b64(), svreinterpret_u64_u32(x_##a), svld1_gather_s64offset_u64(svptrue_b64(), (uint64_t*)(m+0), gvv));             \
+      t0 = sveor_u64_x(svptrue_b64(), svreinterpret_u64_u32(x_##a), svld1_gather_s64offset_u64(svptrue_b64(), (uint64_t*)(m+0), gvv));             \
       svst1_scatter_s64offset_u64(svptrue_b64(), (uint64_t*)(out+0), gvv, t0);\
-      t1 = sveor_u64_z(svptrue_b64(), svreinterpret_u64_u32(x_##b), svld1_gather_s64offset_u64(svptrue_b64(), (uint64_t*)(m+64), gvv));             \
+      t1 = sveor_u64_x(svptrue_b64(), svreinterpret_u64_u32(x_##b), svld1_gather_s64offset_u64(svptrue_b64(), (uint64_t*)(m+64), gvv));             \
       svst1_scatter_s64offset_u64(svptrue_b64(), (uint64_t*)(out+64), gvv, t1);\
-      t2 = sveor_u64_z(svptrue_b64(), svreinterpret_u64_u32(x_##c), svld1_gather_s64offset_u64(svptrue_b64(), (uint64_t*)(m+128), gvv));             \
+      t2 = sveor_u64_x(svptrue_b64(), svreinterpret_u64_u32(x_##c), svld1_gather_s64offset_u64(svptrue_b64(), (uint64_t*)(m+128), gvv));             \
       svst1_scatter_s64offset_u64(svptrue_b64(), (uint64_t*)(out+128), gvv, t2);\
-      t3 = sveor_u64_z(svptrue_b64(), svreinterpret_u64_u32(x_##d), svld1_gather_s64offset_u64(svptrue_b64(), (uint64_t*)(m+192), gvv));             \
+      t3 = sveor_u64_x(svptrue_b64(), svreinterpret_u64_u32(x_##d), svld1_gather_s64offset_u64(svptrue_b64(), (uint64_t*)(m+192), gvv));             \
       svst1_scatter_s64offset_u64(svptrue_b64(), (uint64_t*)(out+192), gvv, t3);\
     }
 
@@ -378,30 +365,108 @@ if (bytes>=16*vc) {
 		     );							\
     }
 
-#define ONEQUAD(a,b,c,d) ONEQUAD_TRANSPOSE(a,b,c,d)
+    /* no point going for 128 bits of consecutive data, it's not going to be faster.
+       Still go to 64 bits, which might be faster than 32 bits */
+#define ONEQUAD_SEMITRANSPOSE(a,b,c,d)					\
+    {                                                                   \
+	    svuint32_t t00, t01, t10, t11;				\
+	    svuint64_t t0, t1, t2, t3;					\
+	    x_##a = svadd_u32_x(svptrue_b32(), x_##a, orig##a);		\
+	    x_##b = svadd_u32_x(svptrue_b32(), x_##b, orig##b);		\
+	    x_##c = svadd_u32_x(svptrue_b32(), x_##c, orig##c);		\
+	    x_##d = svadd_u32_x(svptrue_b32(), x_##d, orig##d);		\
+	    t00 = svtrn1_u32(x_##a,x_##b);				\
+	    t01 = svtrn2_u32(x_##a,x_##b);				\
+	    t10 = svtrn1_u32(x_##c,x_##d);				\
+	    t11 = svtrn2_u32(x_##c,x_##d);				\
+	    t0 = sveor_u64_x(svptrue_b64(), svreinterpret_u64_u32(t00), svld1_gather_s64offset_u64(svptrue_b64(), (uint64_t*)(m+0), gvvalt)); \
+	    svst1_scatter_s64offset_u64(svptrue_b64(), (uint64_t*)(out+0), gvvalt, t0); \
+	    t1 = sveor_u64_x(svptrue_b64(), svreinterpret_u64_u32(t01), svld1_gather_s64offset_u64(svptrue_b64(), (uint64_t*)(m+64), gvvalt)); \
+	    svst1_scatter_s64offset_u64(svptrue_b64(), (uint64_t*)(out+64), gvvalt, t1); \
+	    t2 = sveor_u64_x(svptrue_b64(), svreinterpret_u64_u32(t10), svld1_gather_s64offset_u64(svptrue_b64(), (uint64_t*)(m+8), gvvalt)); \
+	    svst1_scatter_s64offset_u64(svptrue_b64(), (uint64_t*)(out+8), gvvalt, t2); \
+	    t3 = sveor_u64_x(svptrue_b64(), svreinterpret_u64_u32(t11), svld1_gather_s64offset_u64(svptrue_b64(), (uint64_t*)(m+72), gvvalt)); \
+	    svst1_scatter_s64offset_u64(svptrue_b64(), (uint64_t*)(out+72), gvvalt, t3); \
+    }
 
-    svint64_t gvv, gvvl, gvvh;
+    /* For the sake of testing */
+#define ONEQUAD_NOTRANSPOSE(a,b,c,d)					\
+    {                                                                   \
+	    svuint32_t t0, t1, t2, t3;					\
+	    x_##a = svadd_u32_x(svptrue_b32(), x_##a, orig##a);		\
+	    x_##b = svadd_u32_x(svptrue_b32(), x_##b, orig##b);		\
+	    x_##c = svadd_u32_x(svptrue_b32(), x_##c, orig##c);		\
+	    x_##d = svadd_u32_x(svptrue_b32(), x_##d, orig##d);		\
+	    t0 = sveor_u32_x(svptrue_b32(), (x_##a), svld1_gather_s32offset_u32(svptrue_b32(), (uint32_t*)(m+0), gvvalt)); \
+	    svst1_scatter_s32offset_u32(svptrue_b32(), (uint32_t*)(out+0), gvvalt, t0); \
+	    t1 = sveor_u32_x(svptrue_b32(), (x_##b), svld1_gather_s32offset_u32(svptrue_b32(), (uint32_t*)(m+4), gvvalt)); \
+	    svst1_scatter_s32offset_u32(svptrue_b32(), (uint32_t*)(out+4), gvvalt, t1); \
+	    t2 = sveor_u32_x(svptrue_b32(), (x_##c), svld1_gather_s32offset_u32(svptrue_b32(), (uint32_t*)(m+8), gvvalt)); \
+	    svst1_scatter_s32offset_u32(svptrue_b32(), (uint32_t*)(out+8), gvvalt, t2); \
+	    t3 = sveor_u32_x(svptrue_b32(), (x_##d), svld1_gather_s32offset_u32(svptrue_b32(), (uint32_t*)(m+12), gvvalt)); \
+	    svst1_scatter_s32offset_u32(svptrue_b32(), (uint32_t*)(out+12), gvvalt, t3); \
+    }
+
+#if defined(FINAL_BUILTIN_128) || defined(FINAL_BUILTIN_64) || defined(FINAL_BUILTIN_32)
+#if defined(FINAL_BUILTIN_128)
+    svint64_t gvv, gvvl;
     /* But beware, the range of immediates is small in svindex
      * So need to be a bit careful to construct the vector of gather/scatter indices
      */
     gvvl = svindex_s64(0, 1);
-    gvvl = svlsl_n_s64_z(svptrue_b64(), gvvl, 8);
+    gvvl = svlsl_n_s64_x(svptrue_b64(), gvvl, 8);
     gvvl = svzip1(gvvl, gvvl);
-    gvv = svadd_s64_z(svptrue_b64(), gvvl, svdupq_n_s64(0,8));
+    gvv = svadd_s64_x(svptrue_b64(), gvvl, svdupq_n_s64(0,8));
 
-#if 1
-    ONEQUAD(0,1,2,3);
+    ONEQUAD_TRANSPOSE(0,1,2,3);
     m+=16;
     out+=16;
-    ONEQUAD(4,5,6,7);
+    ONEQUAD_TRANSPOSE(4,5,6,7);
     m+=16;
     out+=16;
-    ONEQUAD(8,9,10,11);
+    ONEQUAD_TRANSPOSE(8,9,10,11);
     m+=16;
     out+=16;
-    ONEQUAD(12,13,14,15);
+    ONEQUAD_TRANSPOSE(12,13,14,15);
     m-=48;
     out-=48;
+#elif defined(FINAL_BUILTIN_64)
+    svint64_t gvvalt;
+    gvvalt = svindex_s64(0,1);
+    gvvalt = svlsl_n_s64_x(svptrue_b64(), gvvalt, 7);
+
+    ONEQUAD_SEMITRANSPOSE(0,1,2,3);
+    m+=16;
+    out+=16;
+    ONEQUAD_SEMITRANSPOSE(4,5,6,7);
+    m+=16;
+    out+=16;
+    ONEQUAD_SEMITRANSPOSE(8,9,10,11);
+    m+=16;
+    out+=16;
+    ONEQUAD_SEMITRANSPOSE(12,13,14,15);
+    m-=48;
+    out-=48;
+#elif defined(FINAL_BUILTIN_32)
+    svint32_t gvvalt;
+    gvvalt = svindex_s32(0,1);
+    gvvalt = svlsl_n_s32_x(svptrue_b32(), gvvalt, 6);
+
+    ONEQUAD_NOTRANSPOSE(0,1,2,3);
+    m+=16;
+    out+=16;
+    ONEQUAD_NOTRANSPOSE(4,5,6,7);
+    m+=16;
+    out+=16;
+    ONEQUAD_NOTRANSPOSE(8,9,10,11);
+    m+=16;
+    out+=16;
+    ONEQUAD_NOTRANSPOSE(12,13,14,15);
+    m-=48;
+    out-=48;
+#else
+#error "Final fallthrough"
+#endif
 #else
 #if 0
     {
@@ -473,15 +538,15 @@ if (bytes>=16*vc) {
 	    svbool_t p0;
 	    asm volatile("ptrue %0.d\n" : "=Upl" (p0));
 	    ADD4(0, 1, 2, 3);
-	    GATHER4(0, 0, 1, 2, 3);
 	    ADD4(4, 5, 6, 7);
-	    GATHER4(16, 4, 5, 6, 7);
-	    TRANSSTORE4(0, 0, 1, 2, 3);
 	    ADD4(8, 9, 10, 11);
-	    GATHER4(32, 8, 9, 10, 11);
-	    TRANSSTORE4(16, 4, 5, 6, 7);
 	    ADD4(12, 13, 14, 15);
+	    GATHER4(0, 0, 1, 2, 3);
+	    GATHER4(16, 4, 5, 6, 7);
+	    GATHER4(32, 8, 9, 10, 11);
 	    GATHER4(48, 12, 13, 14, 15);
+	    TRANSSTORE4(0, 0, 1, 2, 3);
+	    TRANSSTORE4(16, 4, 5, 6, 7);
 	    TRANSSTORE4(32, 8, 9, 10, 11);
 	    TRANSSTORE4(48, 12, 13, 14, 15);
     }
@@ -492,8 +557,7 @@ if (bytes>=16*vc) {
 
 #endif
 #endif
-    
-#undef ONEQUAD
+
 #undef ONEQUAD_TRANSPOSE
 #undef ONEQUAD_TRANSPOSE_ASM
 
