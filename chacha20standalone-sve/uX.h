@@ -18,11 +18,12 @@ This does a variable number of blocks, depending on the SVE vector size.
 #define VEC4_ROT(a,imm) sveor_u32_x(svptrue_b32(), svlsl_n_u32_x(svptrue_b32(), a, imm),svlsr_n_u32_x(svptrue_b32(), a, 32-imm))
 
 #define VEC4_ROT16(a) svrevh_u32_x(svptrue_b32(), a)
+#define VEC4_ROT8(a) svreinterpret_u32_u8(svtbl_u8(svreinterpret_u8_u32(a), svreinterpret_u8_u32(tbl_index)))
 
-#define VEC4_QUARTERROUND_INT(a,b,c,d)                                \
+#define VEC4_QUARTERROUND(a,b,c,d)                                \
    x_##a = svadd_u32_x(svptrue_b32(), x_##a, x_##b); t_##a = sveor_u32_x(svptrue_b32(), x_##d, x_##a); x_##d = VEC4_ROT16(t_##a); \
    x_##c = svadd_u32_x(svptrue_b32(), x_##c, x_##d); t_##c = sveor_u32_x(svptrue_b32(), x_##b, x_##c); x_##b = VEC4_ROT(t_##c, 12); \
-   x_##a = svadd_u32_x(svptrue_b32(), x_##a, x_##b); t_##a = sveor_u32_x(svptrue_b32(), x_##d, x_##a); x_##d = VEC4_ROT(t_##a,  8); \
+   x_##a = svadd_u32_x(svptrue_b32(), x_##a, x_##b); t_##a = sveor_u32_x(svptrue_b32(), x_##d, x_##a); x_##d = VEC4_ROT8(t_##a); \
    x_##c = svadd_u32_x(svptrue_b32(), x_##c, x_##d); t_##c = sveor_u32_x(svptrue_b32(), x_##b, x_##c); x_##b = VEC4_ROT(t_##c,  7)
 
 #define VEC4_QUARTERROUND_ASM(a,b,c,d)				\
@@ -38,9 +39,7 @@ This does a variable number of blocks, depending on the SVE vector size.
 		     "\n"					\
 		     "add %0.s, %0.s, %1.s\n"			\
 		     "eor %3.d, %3.d, %0.d\n"			\
-		     "lsr %4.s, %3.s, #24\n"			\
-		     "lsl %3.s, %3.s, #8\n"			\
-		     "eor %3.d, %3.d, %4.d\n"			\
+		     "tbl %3.b, { %3.b }, %[tbl_index].b\n"	\
 		     "\n"					\
 		     "add %2.s, %2.s, %3.s\n"			\
 		     "eor %1.d, %1.d, %2.d\n"			\
@@ -48,7 +47,8 @@ This does a variable number of blocks, depending on the SVE vector size.
 		     "lsl %1.s, %1.s, #7\n"			\
 		     "eor %1.d, %1.d, %4.d\n"			\
 		     "\n"					\
-		     : "+&w" (x_##a), "+&w" (x_##b), "+&w" (x_##c), "+&w" (x_##d), "=w" (temp1) : [p0] "Upl" (p0))
+		     : "+&w" (x_##a), "+&w" (x_##b), "+&w" (x_##c), "+&w" (x_##d), "=w" (temp1)	\
+		     : [p0] "Upl" (p0), [tbl_index] "w" (tbl_index))
 
 
 #define VEC4_DOUBLEQUARTERROUND_ASM(a,b,c,d,e,f,g,h)		\
@@ -74,12 +74,8 @@ This does a variable number of blocks, depending on the SVE vector size.
 		     "add %4.s, %4.s, %5.s\n"			\
 		     "eor %3.d, %3.d, %0.d\n"			\
 		     "eor %7.d, %7.d, %4.d\n"			\
-		     "lsr %8.s, %3.s, #24\n"			\
-		     "lsr %9.s, %7.s, #24\n"			\
-		     "lsl %3.s, %3.s, #8\n"			\
-		     "lsl %7.s, %7.s, #8\n"			\
-		     "eor %3.d, %3.d, %8.d\n"			\
-		     "eor %7.d, %7.d, %9.d\n"			\
+		     "tbl %3.b, { %3.b }, %[tbl_index].b\n"	\
+		     "tbl %7.b, { %7.b }, %[tbl_index].b\n"	\
 		     "\n"					\
 		     "add %2.s, %2.s, %3.s\n"			\
 		     "add %6.s, %6.s, %7.s\n"			\
@@ -94,7 +90,30 @@ This does a variable number of blocks, depending on the SVE vector size.
 		     "\n"					\
 		     : "+&w" (x_##a), "+&w" (x_##b), "+&w" (x_##c), "+&w" (x_##d), \
 		       "+&w" (x_##e), "+&w" (x_##f), "+&w" (x_##g), "+&w" (x_##h), \
-		       "=w" (temp1), "=w" (temp2) : [p0] "Upl" (p0))
+		       "=w" (temp1), "=w" (temp2) : [p0] "Upl" (p0), [tbl_index] "w" (tbl_index))
+
+#define ROT12_USE_MAD
+#ifdef ROT12_USE_MAD
+#define ROT12_ASM					\
+	"lsl %1.s, %1.s, #12\n"				\
+	"mad %5.s, %[p0]/m, %[c4096].s, %17.s\n"	\
+	"lsl %9.s, %9.s, #12\n"				\
+	"mad %13.s, %[p0]/m, %[c4096].s, %19.s\n"	\
+	"eor %1.d, %1.d, %16.d\n"			\
+	"eor %9.d, %9.d, %18.d\n"
+#define ROT12_DEP , [c4096] "w" (c4096)
+#else
+#define ROT12_ASM					\
+	"lsl %1.s, %1.s, #12\n"				\
+	"lsl %5.s, %5.s, #12\n"				\
+	"lsl %9.s, %9.s, #12\n"				\
+	"lsl %13.s, %13.s, #12\n"			\
+	"eor %1.d, %1.d, %16.d\n"			\
+	"eor %5.d, %5.d, %17.d\n"			\
+	"eor %9.d, %9.d, %18.d\n"			\
+	"eor %13.d, %13.d, %19.d\n"
+#define ROT12_DEP
+#endif
 
 /* this one has too many arguments for GCC, works fine with armclang though */
 #define VEC4_QUADQUARTERROUND_ASM(a,b,c,d, e,f,g,h, i,j,k,l, m,n,o,p)	\
@@ -123,14 +142,7 @@ This does a variable number of blocks, depending on the SVE vector size.
 		     "lsr %17.s, %5.s, #20\n"			\
 		     "lsr %18.s, %9.s, #20\n"			\
 		     "lsr %19.s, %13.s, #20\n"			\
-		     "lsl %1.s, %1.s, #12\n"			\
-		     "lsl %5.s, %5.s, #12\n"			\
-		     "lsl %9.s, %9.s, #12\n"			\
-		     "lsl %13.s, %13.s, #12\n"			\
-		     "eor %1.d, %1.d, %16.d\n"			\
-		     "eor %5.d, %5.d, %17.d\n"			\
-		     "eor %9.d, %9.d, %18.d\n"			\
-		     "eor %13.d, %13.d, %19.d\n"		\
+		     ROT12_ASM					\
 		     "\n"					\
 		     "add %0.s, %0.s, %1.s\n"			\
 		     "add %4.s, %4.s, %5.s\n"			\
@@ -168,7 +180,7 @@ This does a variable number of blocks, depending on the SVE vector size.
 		     "\n"					\
 		     : "+&w" (x_##a), "+&w" (x_##b), "+&w" (x_##c), "+&w" (x_##d), "+&w" (x_##e), "+&w" (x_##f), "+&w" (x_##g), "+&w" (x_##h), \
 		       "+&w" (x_##i), "+&w" (x_##j), "+&w" (x_##k), "+&w" (x_##l), "+&w" (x_##m), "+&w" (x_##n), "+&w" (x_##o), "+&w" (x_##p), \
-		       "=w" (temp1), "=w" (temp2), "=w" (temp3), "=w" (temp4) : [p0] "Upl" (p0), [tbl_index] "w" (tbl_index))
+		       "=w" (temp1), "=w" (temp2), "=w" (temp3), "=w" (temp4) : [p0] "Upl" (p0), [tbl_index] "w" (tbl_index) ROT12_DEP )
 
   if (!bytes) return;
 uint64_t vc = svcntb(); /* how many bytes in a vector */
@@ -225,6 +237,8 @@ if (bytes>=16*vc) {
   svuint32_t t_14;
   svuint32_t t_15;
   svuint32_t tbl_index;
+  const svuint32_t c4096 = svdup_n_u32(4096);
+/*   const svuint32_t c128 = svdup_n_u32(128); */
 
   tbl_index = svreinterpret_u32_u8(svindex_u8(0,1));
   tbl_index = VEC4_ROT(tbl_index, 8);
