@@ -94,13 +94,27 @@ This does a variable number of blocks, depending on the SVE vector size.
 
 #define ROT12_USE_MAD
 #ifdef ROT12_USE_MAD
-#define ROT12_ASM					\
+#define ROT12_ASM_P					\
 	"lsl %1.s, %1.s, #12\n"				\
 	"mad %5.s, %[p0]/m, %[c4096].s, %17.s\n"	\
 	"lsl %9.s, %9.s, #12\n"				\
 	"mad %13.s, %[p0]/m, %[c4096].s, %19.s\n"	\
 	"eor %1.d, %1.d, %16.d\n"			\
 	"eor %9.d, %9.d, %18.d\n"
+#define ROT12_ASM_S					\
+	"lsl %1.s, %1.s, #12\n"				\
+	"mad %5.s, %[p0]/m, %[c4096].s, %17.s\n"	\
+	"lsl %9.s, %9.s, #12\n"				\
+	"lsl %13.s, %13.s, #12\n"			\
+	"eor %1.d, %1.d, %16.d\n"			\
+	"eor %9.d, %9.d, %18.d\n"			\
+	"eor %13.d, %13.d, %19.d\n"
+#define ROT12_ASM_Q					\
+	"mad %1.s, %[p0]/m, %[c4096].s, %16.s\n"	\
+	"mad %5.s, %[p0]/m, %[c4096].s, %17.s\n"	\
+	"mad %9.s, %[p0]/m, %[c4096].s, %18.s\n"	\
+	"mad %13.s, %[p0]/m, %[c4096].s, %19.s\n"
+#define ROT12_ASM ROT12_ASM_Q
 #define ROT12_DEP , [c4096] "w" (c4096)
 #else
 #define ROT12_ASM					\
@@ -113,6 +127,50 @@ This does a variable number of blocks, depending on the SVE vector size.
 	"eor %9.d, %9.d, %18.d\n"			\
 	"eor %13.d, %13.d, %19.d\n"
 #define ROT12_DEP
+#endif
+
+#define ROT7_USE_MAD
+#ifdef ROT7_USE_MAD
+#define ROT7_ASM_P1					\
+	"lsl %1.s, %1.s, #7\n"				\
+	"mad %5.s, %[p0]/m, %[c128].s, %17.s\n"		\
+	"lsl %9.s, %9.s, #7\n"				\
+	"mad %13.s, %[p0]/m, %[c128].s, %19.s\n"	\
+	"eor %1.d, %1.d, %16.d\n"			\
+	"eor %9.d, %9.d, %18.d\n"
+#define ROT7_ASM_P2					\
+	"mad %1.s, %[p0]/m, %[c128].s, %16.s\n"		\
+	"lsl %5.s, %5.s, #7\n"				\
+	"mad %9.s, %[p0]/m, %[c128].s, %18.s\n"		\
+	"lsl %13.s, %13.s, #7\n"			\
+	"eor %5.d, %5.d, %17.d\n"			\
+	"eor %13.d, %13.d, %19.d\n"
+#define ROT7_ASM_S2					\
+	"mad %1.s, %[p0]/m, %[c128].s, %16.s\n"		\
+	"lsl %5.s, %5.s, #7\n"				\
+	"lsl %9.s, %9.s, #7\n"				\
+	"lsl %13.s, %13.s, #7\n"			\
+	"eor %5.d, %5.d, %17.d\n"			\
+	"eor %9.d, %9.d, %18.d\n"			\
+	"eor %13.d, %13.d, %19.d\n"
+#define ROT7_ASM_Q					\
+	"mad %1.s, %[p0]/m, %[c128].s, %16.s\n"		\
+	"mad %5.s, %[p0]/m, %[c128].s, %17.s\n"		\
+	"mad %9.s, %[p0]/m, %[c128].s, %18.s\n"		\
+	"mad %13.s, %[p0]/m, %[c128].s, %19.s\n"
+#define ROT7_ASM ROT7_ASM_Q
+#define ROT7_DEP , [c128] "w" (c128)
+#else
+#define ROT7_ASM					\
+	"lsl %1.s, %1.s, #7\n"				\
+	"lsl %5.s, %5.s, #7\n"				\
+	"lsl %9.s, %9.s, #7\n"				\
+	"lsl %13.s, %13.s, #7\n"			\
+	"eor %1.d, %1.d, %16.d\n"			\
+	"eor %5.d, %5.d, %17.d\n"			\
+	"eor %9.d, %9.d, %18.d\n"			\
+	"eor %13.d, %13.d, %19.d\n"
+#define ROT7_DEP
 #endif
 
 /* this one has too many arguments for GCC, works fine with armclang though */
@@ -169,18 +227,11 @@ This does a variable number of blocks, depending on the SVE vector size.
 		     "lsr %17.s, %5.s, #25\n"			\
 		     "lsr %18.s, %9.s, #25\n"			\
 		     "lsr %19.s, %13.s, #25\n"			\
-		     "lsl %1.s, %1.s, #7\n"			\
-		     "lsl %5.s, %5.s, #7\n"			\
-		     "lsl %9.s, %9.s, #7\n"			\
-		     "lsl %13.s, %13.s, #7\n"			\
-		     "eor %1.d, %1.d, %16.d\n"			\
-		     "eor %5.d, %5.d, %17.d\n"			\
-		     "eor %9.d, %9.d, %18.d\n"			\
-		     "eor %13.d, %13.d, %19.d\n"		\
+		     ROT7_ASM					\
 		     "\n"					\
 		     : "+&w" (x_##a), "+&w" (x_##b), "+&w" (x_##c), "+&w" (x_##d), "+&w" (x_##e), "+&w" (x_##f), "+&w" (x_##g), "+&w" (x_##h), \
 		       "+&w" (x_##i), "+&w" (x_##j), "+&w" (x_##k), "+&w" (x_##l), "+&w" (x_##m), "+&w" (x_##n), "+&w" (x_##o), "+&w" (x_##p), \
-		       "=w" (temp1), "=w" (temp2), "=w" (temp3), "=w" (temp4) : [p0] "Upl" (p0), [tbl_index] "w" (tbl_index) ROT12_DEP )
+		       "=w" (temp1), "=w" (temp2), "=w" (temp3), "=w" (temp4) : [p0] "Upl" (p0), [tbl_index] "w" (tbl_index) ROT12_DEP ROT7_DEP )
 
   if (!bytes) return;
 uint64_t vc = svcntb(); /* how many bytes in a vector */
@@ -238,7 +289,7 @@ if (bytes>=16*vc) {
   svuint32_t t_15;
   svuint32_t tbl_index;
   const svuint32_t c4096 = svdup_n_u32(4096);
-/*   const svuint32_t c128 = svdup_n_u32(128); */
+  const svuint32_t c128 = svdup_n_u32(128);
 
   tbl_index = svreinterpret_u32_u8(svindex_u8(0,1));
   tbl_index = VEC4_ROT(tbl_index, 8);
@@ -299,7 +350,8 @@ if (bytes>=16*vc) {
       VEC4_DOUBLEQUARTERROUND_ASM( 2, 7, 8,13, 3, 4, 9,14);
 #elif defined(LOOP_ASM_4)
       VEC4_QUADQUARTERROUND_ASM( 0, 4, 8,12, 1, 5, 9,13, 2, 6,10,14, 3, 7,11,15);
-      VEC4_QUADQUARTERROUND_ASM( 0, 5,10,15, 1, 6,11,12, 2, 7, 8,13, 3, 4, 9,14);
+/*       VEC4_QUADQUARTERROUND_ASM( 0, 5,10,15, 1, 6,11,12, 2, 7, 8,13, 3, 4, 9,14); */
+      VEC4_QUADQUARTERROUND_ASM(3, 4, 9,14, 0, 5,10,15, 1, 6,11,12, 2, 7, 8,13);
 #else
 #error "ASM fallthrough"
 #endif
