@@ -156,8 +156,8 @@ gemv_double_fft16 (
 #define fake_vlseg2e(addr, o1, o2, vc)					\
       do {								\
 	      __epi_1xf64x2 l = __builtin_epi_vlseg2_1xf64x2((addr), vc); \
-	      o1 = v.v0;						\
-	      o2 = v.v1;						\
+	      o1 = l.v0;						\
+	      o2 = l.v1;						\
       } while (0)
 
 #define fake_vsseg2e(addr, o1, o2, vc)					\
