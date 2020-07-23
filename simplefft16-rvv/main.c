@@ -93,14 +93,15 @@ printf("Time for % 60s is % 8llu cycles\n", #X, (unsigned long long)(t1-t0));\
 
 #define ITER 4
 
+#define MAXTESTS 40
 
 int main(int argc, char **argv) {
 	double *in = calloc(sizeof(double), 64);
-	double **out = calloc(sizeof(double*), 20);
+	double **out = calloc(sizeof(double*), MAXTESTS);
 	int i, j, k, idx;
 
 	srand48(0xDEADBEEF); // fixed randomness
-	for (i = 0 ; i < 20 ; i++)
+	for (i = 0 ; i < MAXTESTS ; i++)
 		out[i] = calloc(sizeof(double), 64);
 
 	for (i = 0 ; i < 64 ; i++) {
@@ -121,7 +122,8 @@ int main(int argc, char **argv) {
 #if defined(__riscv)
 	unsigned long int vc = __builtin_epi_vsetvl(16, __epi_e64, __epi_m1);
 	if (vc < 16) { fprintf(stderr, "vector too short for register-based FFT16\n"); exit(-1); };
-#if 1
+
+	/* emulated vlseg2/vsseg2 */
 	TIME(gemv_double_fft16_1(in, out[idx], 2, 32, 32)); idx++;
 	TIME(gemv_double_fft16_2(in, out[idx], 2, 32, 32)); idx++;
 	TIME(gemv_double_fft16_2b(in, out[idx], 2, 32, 32)); idx++;
@@ -133,8 +135,21 @@ int main(int argc, char **argv) {
 	TIME(gemv_double_fft16_8(in, out[idx], 2, 32, 32)); idx++;
 	TIME(gemv_double_fft16_9(in, out[idx], 2, 32, 32)); idx++;
 	TIME(gemv_double_fft16_10(in, out[idx], 2, 32, 32)); idx++;
-#endif
 	TIME(gemv_double_fft16_11(in, out[idx], 2, 32, 32)); idx++;
+
+	/* true vlseg2/vsseg2 */
+	TIME(gemv_double_fft16_1T(in, out[idx], 2, 32, 32)); idx++;
+	TIME(gemv_double_fft16_2T(in, out[idx], 2, 32, 32)); idx++;
+	TIME(gemv_double_fft16_2bT(in, out[idx], 2, 32, 32)); idx++;
+	TIME(gemv_double_fft16_3T(in, out[idx], 2, 32, 32)); idx++;
+	TIME(gemv_double_fft16_4T(in, out[idx], 2, 32, 32)); idx++;
+	TIME(gemv_double_fft16_5T(in, out[idx], 2, 32, 32)); idx++;
+	TIME(gemv_double_fft16_6T(in, out[idx], 2, 32, 32)); idx++;
+	TIME(gemv_double_fft16_7T(in, out[idx], 2, 32, 32)); idx++;
+	TIME(gemv_double_fft16_8T(in, out[idx], 2, 32, 32)); idx++;
+	TIME(gemv_double_fft16_9T(in, out[idx], 2, 32, 32)); idx++;
+	TIME(gemv_double_fft16_10T(in, out[idx], 2, 32, 32)); idx++;
+	TIME(gemv_double_fft16_11T(in, out[idx], 2, 32, 32)); idx++;
 #endif
 	}	
 

@@ -19,6 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
 void gemv_double_fft16_blas(double * in, double * out, int v, int ivs, int ovs);
+
 void gemv_double_fft16_1(double * in, double * out, int v, int ivs, int ovs);
 void gemv_double_fft16_2(double * in, double * out, int v, int ivs, int ovs);
 void gemv_double_fft16_2b(double * in, double * out, int v, int ivs, int ovs);
@@ -33,6 +34,16 @@ void gemv_double_fft16_10(double * in, double * out, int v, int ivs, int ovs);
 void gemv_double_fft16_11(double * in, double * out, int v, int ivs, int ovs);
 
 
-
-
+void gemv_double_fft16_1T(double * in, double * out, int v, int ivs, int ovs);
+void gemv_double_fft16_2T(double * in, double * out, int v, int ivs, int ovs);
+void gemv_double_fft16_2bT(double * in, double * out, int v, int ivs, int ovs);
+void gemv_double_fft16_3T(double * in, double * out, int v, int ivs, int ovs);
+void gemv_double_fft16_4T(double * in, double * out, int v, int ivs, int ovs);
+void gemv_double_fft16_5T(double * in, double * out, int v, int ivs, int ovs);
+void gemv_double_fft16_6T(double * in, double * out, int v, int ivs, int ovs);
+void gemv_double_fft16_7T(double * in, double * out, int v, int ivs, int ovs);
+void gemv_double_fft16_8T(double * in, double * out, int v, int ivs, int ovs);
+void gemv_double_fft16_9T(double * in, double * out, int v, int ivs, int ovs);
+void gemv_double_fft16_10T(double * in, double * out, int v, int ivs, int ovs);
+void gemv_double_fft16_11T(double * in, double * out, int v, int ivs, int ovs);
 

@@ -45,30 +45,36 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #error "should pick a variant"
 #endif
 
+#if defined(RISCV_V_TRUESEGLS)
+#define T(X) X##T
+#else
+#define T(X) X
+#endif
+
 #if defined(RISCV_V_VARIANT1)
-#define gemv_double_fft16(a,b,c,d,e) gemv_double_fft16_1(a,b,c,d,e)
+#define gemv_double_fft16(a,b,c,d,e) T(gemv_double_fft16_1)(a,b,c,d,e)
 #elif defined(RISCV_V_VARIANT2)
-#define gemv_double_fft16(a,b,c,d,e) gemv_double_fft16_2(a,b,c,d,e)
+#define gemv_double_fft16(a,b,c,d,e) T(gemv_double_fft16_2)(a,b,c,d,e)
 #elif defined(RISCV_V_VARIANT2B)
-#define gemv_double_fft16(a,b,c,d,e) gemv_double_fft16_2b(a,b,c,d,e)
+#define gemv_double_fft16(a,b,c,d,e) T(gemv_double_fft16_2b)(a,b,c,d,e)
 #elif defined(RISCV_V_VARIANT3)
-#define gemv_double_fft16(a,b,c,d,e) gemv_double_fft16_3(a,b,c,d,e)
+#define gemv_double_fft16(a,b,c,d,e) T(gemv_double_fft16_3)(a,b,c,d,e)
 #elif defined(RISCV_V_VARIANT4)
-#define gemv_double_fft16(a,b,c,d,e) gemv_double_fft16_4(a,b,c,d,e)
+#define gemv_double_fft16(a,b,c,d,e) T(gemv_double_fft16_4)(a,b,c,d,e)
 #elif defined(RISCV_V_VARIANT5)
-#define gemv_double_fft16(a,b,c,d,e) gemv_double_fft16_5(a,b,c,d,e)
+#define gemv_double_fft16(a,b,c,d,e) T(gemv_double_fft16_5)(a,b,c,d,e)
 #elif defined(RISCV_V_VARIANT6)
-#define gemv_double_fft16(a,b,c,d,e) gemv_double_fft16_6(a,b,c,d,e)
+#define gemv_double_fft16(a,b,c,d,e) T(gemv_double_fft16_6)(a,b,c,d,e)
 #elif defined(RISCV_V_VARIANT7)
-#define gemv_double_fft16(a,b,c,d,e) gemv_double_fft16_7(a,b,c,d,e)
+#define gemv_double_fft16(a,b,c,d,e) T(gemv_double_fft16_7)(a,b,c,d,e)
 #elif defined(RISCV_V_VARIANT8)
-#define gemv_double_fft16(a,b,c,d,e) gemv_double_fft16_8(a,b,c,d,e)
+#define gemv_double_fft16(a,b,c,d,e) T(gemv_double_fft16_8)(a,b,c,d,e)
 #elif defined(RISCV_V_VARIANT9)
-#define gemv_double_fft16(a,b,c,d,e) gemv_double_fft16_9(a,b,c,d,e)
+#define gemv_double_fft16(a,b,c,d,e) T(gemv_double_fft16_9)(a,b,c,d,e)
 #elif defined(RISCV_V_VARIANT10)
-#define gemv_double_fft16(a,b,c,d,e) gemv_double_fft16_10(a,b,c,d,e)
+#define gemv_double_fft16(a,b,c,d,e) T(gemv_double_fft16_10)(a,b,c,d,e)
 #elif defined(RISCV_V_VARIANT11)
-#define gemv_double_fft16(a,b,c,d,e) gemv_double_fft16_11(a,b,c,d,e)
+#define gemv_double_fft16(a,b,c,d,e) T(gemv_double_fft16_11)(a,b,c,d,e)
 #endif
 
 
@@ -145,6 +151,25 @@ gemv_double_fft16 (
       cblas_zgemv (CblasRowMajor, CblasNoTrans, 16, 16, &alpha, mst, 16, in, 1, &beta, out, 1);
       //      cblas_zsymv(CblasRowMajor, CblasNoTrans, 16, &alpha, mst, 16, in, 1, &beta, out, 1);
 #else
+
+#if defined(RISCV_V_TRUESEGLS)
+#define fake_vlseg2e(addr, o1, o2, vc)					\
+      do {								\
+	      __epi_1xf64x2 l = __builtin_epi_vlseg2_1xf64x2((addr), vc); \
+	      o1 = v.v0;						\
+	      o2 = v.v1;						\
+      } while (0)
+
+#define fake_vsseg2e(addr, o1, o2, vc)					\
+      do {								\
+	      __epi_1xf64x2 l;						\
+	      l.v0 = o1;						\
+	      l.v1 = o2;						\
+	      __builtin_epi_vsseg2_1xf64x2((addr), l, vc);		\
+      } while (0)
+
+#else
+      /* could also use two indexed load */
 #define fake_vlseg2e(addr, o1, o2, vc)					\
 	do {								\
 		__epi_1xf64 l1 = __builtin_epi_vload_1xf64((addr), vc);	\
@@ -154,6 +179,7 @@ gemv_double_fft16 (
 	} while (0)
 
 
+      /* could also use two indexed store */
 #define fake_vsseg2e(addr, o1, o2, vc)					\
 	do {								\
 		__epi_1xf64 l1 = __builtin_epi_zip1_1xf64(o1, o2, vc);	\
@@ -161,6 +187,7 @@ gemv_double_fft16 (
 		__builtin_epi_vstore_1xf64((addr), l1, vc);		\
 		__builtin_epi_vstore_1xf64((addr) + vc, l2, vc);	\
 	} while (0)
+#endif
 
 #define fake_vlseg4e(addr, o1, o2, o3, o4, vc) \
 do { \
