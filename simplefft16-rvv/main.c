@@ -29,6 +29,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "n1_16_simplified.h"
 #include "test_fft16.h"
 #include "test_fft16_zgemv.h"
+#include "n1fv_16.h"
 
 const char *const black  = "\033[0;39;30m";
 const char *const red    = "\033[0;39;31m";
@@ -66,8 +67,8 @@ static inline uint64_t
 getitc_(void)
 {
         uint64_t r = 0;
-        //  asm volatile("mrs %0, PMCCNTR_EL0" : "=r"(r));
-        asm volatile("mrs %0,  CNTVCT_EL0" : "=r" (r));
+          asm volatile("mrs %0, PMCCNTR_EL0" : "=r"(r));
+	  //asm volatile("mrs %0,  CNTVCT_EL0" : "=r" (r));
         return r;
 }
 #endif
@@ -151,7 +152,10 @@ int main(int argc, char **argv) {
 	TIME(gemv_double_fft16_10T(in, out[idx], 2, 32, 32)); idx++;
 	TIME(gemv_double_fft16_11T(in, out[idx], 2, 32, 32)); idx++;
 #endif
-	}	
+#if defined(__ARM_FEATURE_SVE)
+	TIME(n1fv_16(in, in+1, out[idx], out[idx]+1, 2, 2, 2, 32, 32)); idx++;
+#endif
+	}
 
 	for (i = 0 ; i < 64 ; i++) {
 		printf("% 3d [%s]:", i, (i%2?"imag":"real"));

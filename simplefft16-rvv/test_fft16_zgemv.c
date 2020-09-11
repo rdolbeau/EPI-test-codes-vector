@@ -26,6 +26,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #if !defined(__riscv) || defined(BLAS)
 #if defined(__INTEL_COMPILER)
 #include <mkl.h>
+#elif defined(BLAS_NETLIB)
+#include <cblas-netlib.h>
 #else
 #warning "Must define some sort of BLAS headers"
 #define BLIS_ENABLE_CBLAS 1

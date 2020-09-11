@@ -23,6 +23,18 @@ LDFLAGS=#-L/home/dolbeau/blis/lib/generic -Wl,-rpath,/home/dolbeau/blis/lib/gene
 MAINFLAGS=#-DBLAS
 endif
 
+ifeq ($(ARCH),aarch64)
+CC=/opt/local/llvm-522d80ab553b42e2feadfd4178932069dfc51d3f/bin/clang
+#CC=/opt/local/llvm-10.0.0/bin/clang
+CFLAGS=-Ofast -DBLAS_NETLIB
+OBJS+= test_fft16_zgemv_blas.o
+LDFLAGS= -lblas
+MAINFLAGS=-DBLAS
+### SVE testing
+CFLAGS+=-march=armv8-a+sve
+OBJS+=n1fv_16.o
+endif
+
 %.o: %.c
 	$(CC) $(CFLAGS) $< -c -o $@
 
