@@ -122,7 +122,7 @@ int main(int argc, char **argv) {
 #endif
 #if defined(__riscv)
 	unsigned long int vc = __builtin_epi_vsetvl(16, __epi_e64, __epi_m1);
-	if (vc < 16) { fprintf(stderr, "vector too short for register-based FFT16\n"); exit(-1); };
+	if (vc < 16) { fprintf(stderr, "vector too short for register-based FFT16 (only %lu)\n", vc); /* exit(-1);*/ };
 
 	/* emulated vlseg2/vsseg2 */
 	TIME(gemv_double_fft16_1(in, out[idx], 2, 32, 32)); idx++;
