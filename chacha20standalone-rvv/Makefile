@@ -30,3 +30,9 @@ chacha20: $(OBJs) chacha.o try.o
 
 chacha20_small: $(OBJs) chacha.o try_small.o
 	$(CC) -mepi $(OPT) $^ -o $@ $(SCLIBS)
+
+kernelrandombytes.o: getrandom.c
+	$(CC) $(OPT) $< -c -o $@
+
+cpucycles.o: riscv.c
+	$(CC) $(OPT) $< -c -o $@
