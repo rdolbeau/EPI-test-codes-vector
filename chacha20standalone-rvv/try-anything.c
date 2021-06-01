@@ -19,7 +19,7 @@
 #include "crypto_uint32.h"
 #include "crypto_uint64.h"
 #include "try.h"
-#include "vehave-control.h"
+//#include "vehave-control.h"
 
 typedef crypto_uint8 u8;
 typedef crypto_uint32 u32;
@@ -253,7 +253,7 @@ void limits()
   r.rlim_cur = 0;
   r.rlim_max = 0;
 #ifdef RLIMIT_NOFILE
-  setrlimit(RLIMIT_NOFILE,&r);
+//  setrlimit(RLIMIT_NOFILE,&r);
 #endif
 #ifdef RLIMIT_NPROC
   setrlimit(RLIMIT_NPROC,&r);
