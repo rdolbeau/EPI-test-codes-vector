@@ -22,3 +22,12 @@ void generated_double_fft16(
         /* int n */
         double * in,
         double * out);
+
+#if __riscv_vector_version == 700
+#define __builtin_epi_vmv_v_x_2xi32(a,b) __builtin_epi_vbroadcast_2xi32(a,b)
+#define __builtin_epi_vfmv_v_f_2xf32(a,b) __builtin_epi_vbroadcast_2xf32(a,b)
+#endif
+#if __riscv_vector_version == 700
+#define __builtin_epi_vmv_v_x_1xi64(a,b) __builtin_epi_vbroadcast_1xi64(a,b)
+#define __builtin_epi_vfmv_v_f_1xf64(a,b) __builtin_epi_vbroadcast_1xf64(a,b)
+#endif
