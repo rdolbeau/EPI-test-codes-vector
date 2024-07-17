@@ -1,5 +1,5 @@
 /*
- * try-anything.c version 20190729
+ * try-anything.c version 20231211
  * D. J. Bernstein
  * Some portions adapted from TweetNaCl by Bernstein, Janssen, Lange, Schwabe.
  * Public domain.
@@ -18,8 +18,12 @@
 #include "crypto_uint8.h"
 #include "crypto_uint32.h"
 #include "crypto_uint64.h"
+#include "crypto_declassify.h"
 #include "try.h"
-//#include "vehave-control.h"
+
+#ifdef TIMECOP
+#include <valgrind/memcheck.h>
+#endif
 
 typedef crypto_uint8 u8;
 typedef crypto_uint32 u32;
@@ -108,13 +112,14 @@ static void increment(u8 *n)
           if (!++n[4])
             if (!++n[5])
               if (!++n[6])
-                if (!++n[7])
+                if (!++n[7]) {
                   ;
+                }
 }
 
 static void testvector(unsigned char *x,unsigned long long xlen)
 {
-  const static unsigned char testvector_k[33] = "generate inputs for test vectors";
+  static const unsigned char testvector_k[33] = "generate inputs for test vectors";
   static unsigned char testvector_n[8];
   salsa20(x,xlen,testvector_n,testvector_k);
   increment(testvector_n);
@@ -138,7 +143,7 @@ unsigned long long myrandom(void)
 
 static void canary(unsigned char *x,unsigned long long xlen)
 {
-  const static unsigned char canary_k[33] = "generate pad to catch overwrites";
+  static const unsigned char canary_k[33] = "generate pad to catch overwrites";
   static unsigned char canary_n[8];
   salsa20(x,xlen,canary_n,canary_k);
   increment(canary_n);
@@ -192,7 +197,7 @@ static char checksum_hex[65];
 void checksum(const unsigned char *x,unsigned long long xlen)
 {
   u8 block[16];
-  int i;
+  unsigned long long i;
   while (xlen >= 16) {
     core(checksum_state,x,checksum_state);
     x += 16;
@@ -233,7 +238,7 @@ void fail(const char *why)
 unsigned char *alignedcalloc(unsigned long long len)
 {
   unsigned char *x = (unsigned char *) calloc(1,len + 256);
-  long long i;
+  unsigned long long i;
   if (!x) fail("out of memory");
   /* will never deallocate so shifting is ok */
   for (i = 0;i < len + 256;++i) x[i] = random();
@@ -243,7 +248,11 @@ unsigned char *alignedcalloc(unsigned long long len)
   return x;
 }
 
+#ifdef TIMECOP
+#define TIMINGS 1
+#else
 #define TIMINGS 63
+#endif
 static long long cycles[TIMINGS + 1];
 
 void limits()
@@ -253,7 +262,7 @@ void limits()
   r.rlim_cur = 0;
   r.rlim_max = 0;
 #ifdef RLIMIT_NOFILE
-//  setrlimit(RLIMIT_NOFILE,&r);
+  setrlimit(RLIMIT_NOFILE,&r);
 #endif
 #ifdef RLIMIT_NPROC
   setrlimit(RLIMIT_NPROC,&r);
@@ -263,6 +272,50 @@ void limits()
 #endif
 #endif
 }
+
+void poison(void *x,unsigned long long xlen)
+{
+  (void) x;
+  (void) xlen;
+#ifdef TIMECOP
+  VALGRIND_MAKE_MEM_UNDEFINED(x,xlen);
+#endif
+}
+
+void unpoison(void *x,unsigned long long xlen)
+{
+  (void) x;
+  (void) xlen;
+#ifdef TIMECOP
+  VALGRIND_MAKE_MEM_DEFINED(x,xlen);
+#endif
+}
+
+void crypto_declassify(void *x,unsigned long long xlen)
+{
+  (void) x;
+  (void) xlen;
+#ifdef TIMECOP
+  unpoison(x,xlen);
+#endif
+}
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void randombytes_callback(unsigned char *x,unsigned long long xlen)
+{
+  (void) x;
+  (void) xlen;
+#ifdef TIMECOP
+  poison(x,xlen);
+#endif
+}
+
+#ifdef __cplusplus
+}
+#endif
 
 static unsigned char randombyte[1];
 
@@ -274,7 +327,6 @@ int main()
   long long belowj;
   long long checksumcycles;
   long long cyclespersecond;
-//  vehave_disable_tracing();
 
   cycles[0] = cpucycles();
   cycles[1] = cpucycles();
@@ -287,10 +339,14 @@ int main()
   allocate();
   srandom(getpid());
 
+  unalign();
+
   cycles[0] = cpucycles();
   test();
   cycles[1] = cpucycles();
   checksumcycles = cycles[1] - cycles[0];
+
+  realign();
 
   predoit();
   for (i = 0;i <= TIMINGS;++i) {

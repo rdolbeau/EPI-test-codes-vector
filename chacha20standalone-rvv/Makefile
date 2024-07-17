@@ -3,7 +3,8 @@ OBJs=$(SRCs:.c=.o)
 SCLIBS=cpucycles.o kernelrandombytes.o
 
 CC=clang
-OPT=-I. -O2 -fno-vectorize #-DUSE_EPI_CUSTOM
+#OPT=-I. -O2 -fno-vectorize #-DUSE_EPI_CUSTOM
+OPT=-I. -O3 -march=rv64gcv_zba_zbb_zbc_zbs
 
 all: chacha20 chacha20_small
 
@@ -20,16 +21,16 @@ try_small.o: try.c
 	$(CC) $(OPT) $< -c -o $@ -DSMALL
 
 chacha.s: chacha.c uX.h
-	$(CC) -mepi $(OPT) $< -S -o $@
+	$(CC) $(OPT) $< -S -o $@
 
 chacha.o: chacha.s
-	$(CC) -mepi $(OPT) $< -c -o $@
+	$(CC) $(OPT) $< -c -o $@
 
-chacha20: $(OBJs) chacha.o try.o
-	$(CC) -mepi $(OPT) $^ -o $@ $(SCLIBS)
+chacha20: $(OBJs) chacha.o try.o  $(SCLIBS)
+	$(CC) $(OPT) $^ -o $@
 
-chacha20_small: $(OBJs) chacha.o try_small.o
-	$(CC) -mepi $(OPT) $^ -o $@ $(SCLIBS)
+chacha20_small: $(OBJs) chacha.o try_small.o  $(SCLIBS)
+	$(CC) $(OPT) $^ -o $@
 
 kernelrandombytes.o: getrandom.c
 	$(CC) $(OPT) $< -c -o $@

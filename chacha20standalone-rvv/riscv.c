@@ -14,13 +14,13 @@ long long cpucycles_riscv(void)
   long long result;
 #if defined(__riscv_xlen)
 #if __riscv_xlen == 64
-  asm volatile("rdcycle %0" : "=r" (result));
+  asm volatile("rdtime %0" : "=r" (result));
 #elif __riscv_xlen == 32
   unsigned int l, h, h2;
   asm volatile( "start%=:\n"
-                "rdcycleh %0\n"
-                "rdcycle %1\n"
-                "rdcycleh %2\n"
+                "rdtimeh %0\n"
+                "rdtime %1\n"
+                "rdtimeh %2\n"
                 "bne %0, %2, start%=\n"
                 : "=r" (h), "=r" (l), "=r" (h2));
 
