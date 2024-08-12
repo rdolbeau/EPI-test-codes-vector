@@ -7,6 +7,8 @@ Public domain.
 This does a variable number of blocks, depending on the V vector size.
 */
 
+#include "uX_config.h"
+
 #define VEC4_ROT(a,imm) __riscv_vxor_vv_u32m1(__riscv_vsll_vx_u32m1(a, imm, vc),__riscv_vsrl_vx_u32m1(a, 32-imm, vc), vc)
 
 //#define VEC4_ROT16(a) svrevh_u32_z(svptrue_b32(), a)
@@ -104,36 +106,14 @@ vc = vc & ~3;
     in12 = x[12];
     in13 = x[13];
     u64 in1213 = ((u64)in12) | (((u64)in13) << 32);
-//#define CHACHA20_OLDCOUNTER
-#ifdef CHACHA20_OLDCOUNTER
-    /* vid makes it easy to build the input counter */
-    /* this likely should be rewritten in an easier(& faster) way using vector add-with-carry - see below */
-    /* also this seem to break if vc is not a power-of-2 ... */
-    const vuint64m1_t addv13 = __riscv_vid_vv_u64m1(vc/2);
-    const vuint64m1_t vvcover2 = __riscv_vmv_v_x_vv_u64m1(vc/2, vc/2);
-    const vuint64m1_t addv12 = __riscv_vadd_vv_u64m1(addv13, vvcover2, vc/2);
-    vuint64m1_t t12, t13;
-    t12 = __riscv_vmv_v_x_vv_u64m1(in1213, vc/2);
-    t13 = __riscv_vmv_v_x_vv_u64m1(in1213, vc/2);
-
-    x_12 = (vuint32m1_t)__riscv_vadd_vv_u64m1(addv12, t12, vc/2);
-    x_13 = (vuint32m1_t)__riscv_vadd_vv_u64m1(addv13, t13, vc/2);
-
-    vuint32m1_t t = x_12;
-    x_12 = __riscv_uzp1_vv_u32m1(x_13, x_12, vc); // fixme: how ?
-    x_13 = __riscv_uzp2_vv_u32m1(x_13, t, vc);
-#else
+    
     const vuint32m1_t addv = __riscv_vid_v_u32m1(vc);
-    vuint32m1_t oldx_12;
+    //vuint32m1_t oldx_12;
     vbool32_t carry = __riscv_vmclr_m_b32(vc);
-    carry = __riscv_vmxor_mm_b32(carry, carry, vc); //
-    x_12 = __riscv_vmv_v_x_u32m1(in12, vc); // improveme: vadc could ve vxm ninstead of vvm
-    x_13 = __riscv_vmv_v_x_u32m1(in13, vc);
-    oldx_12 = x_12;
-    x_12 = __riscv_vadc_vvm_u32m1(x_12, addv, carry, vc);
-    carry = __riscv_vmadc_vvm_u32m1_b32(oldx_12, addv, carry, vc);
-    x_13 = __riscv_vadc_vvm_u32m1(x_13, __riscv_vmv_v_x_u32m1(0, vc), carry, vc);
-#endif
+    carry = __riscv_vmxor_mm_b32(carry, carry, vc);
+    x_12 =  __riscv_vadc_vxm_u32m1(addv, in12, carry, vc);
+    carry = __riscv_vmadc_vxm_u32m1_b32(addv, in12, carry, vc);
+    x_13 =  __riscv_vadc_vxm_u32m1(__riscv_vmv_v_x_u32m1(0, vc), in13, carry, vc);
 
     orig12 = x_12;
     orig13 = x_13;
@@ -202,8 +182,6 @@ vc = vc & ~3;
       t3 = __riscv_vxor_vv_u64m1(__riscv_vreinterpret_v_u32m1_u64m1(x_##d), __riscv_vluxei64_v_u64m1((unsigned long int*)(m+192), gvv, vc/2), vc/2);\
       __riscv_vsuxei64_v_u64m1((unsigned long int*)(out+192), gvv, t3, vc/2); \
     }
-
-#define ONEQUAD_TRANSPOSE(a,b,c,d) ONEQUAD_TRANSPOSE_SVESTYLE(a,b,c,d)
     
     /* strided is much faster than either transpose on the F3 */
 #define ONE_STRIDED(z, o)						\
@@ -216,10 +194,22 @@ vc = vc & ~3;
     }
 #define ONEQUAD_STRIDED(a,b,c,d) \
     ONE_STRIDED(a,0) ONE_STRIDED(b,4) ONE_STRIDED(c,8) ONE_STRIDED(d,12) 
-    
-#define ONEQUAD(a,b,c,d) ONEQUAD_STRIDED(a,b,c,d)
 
-#if 0 // for ONEQUAD_TRANSPOSE only
+#if defined(RVV_QUAD_TRANSPOSE_LEGACY)
+#define ONEQUAD_TRANSPOSE(a,b,c,d) ONEQUAD_TRANSPOSE_SVESTYLE(a,b,c,d)
+#define ONEQUAD(a,b,c,d) ONEQUAD_TRANSPOSE(a,b,c,d)
+#elif defined(RVV_QUAD_TRANSPOSE_LMUL4)
+#define ONEQUAD_TRANSPOSE(a,b,c,d) ONEQUAD_TRANSPOSE_LMUL4(a,b,c,d)
+#define ONEQUAD(a,b,c,d) ONEQUAD_TRANSPOSE(a,b,c,d)
+#elif defined(RVV_QUAD_STRIDED)
+#define ONEQUAD(a,b,c,d) ONEQUAD_STRIDED(a,b,c,d)
+#else
+#error "No QUAD defined"
+#endif 
+    
+
+    // prep for transpose
+#if defined(ONEQUAD_TRANSPOSE)
     vuint64m1_t gvv, gvvl, gvvh;
     gvvl = __riscv_vid_v_u64m1(vc/2); // (0, 1, 2, 3, ...)
     gvvl = __riscv_vsll_vx_u64m1(gvvl, 8, vc/2); // (0, 256, 512, 768, ... )
@@ -248,7 +238,10 @@ vc = vc & ~3;
     out-=48;
     
 #undef ONEQUAD
+#undef ONEQUAD_STRIDED
+#ifdef ONEQUAD_TRANSPOSE
 #undef ONEQUAD_TRANSPOSE
+#endif
  
     bytes -= 64*vc;
     out += 64*vc;
